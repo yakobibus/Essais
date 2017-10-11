@@ -78,6 +78,27 @@ namespace essai_1 {
 	}
 }
 
+namespace eff
+{
+	template <typename T>
+		inline void eff(const T& t, const T& u) { return t > u ? true : false; }
+	
+	template <typename T>
+		inline const T& eff(const T* yummy, unsigned int sz)
+		{
+			T dummy = yummy[0];
+			for (unsigned int ii = 0; ii < sz; ++ii)
+			{
+				if (yummy[ii] > dummy)
+				{
+					dummy = yummy[ii];
+				}
+			}
+
+			return yummy;
+		}
+}
+
 int main_Essai_1(int argc, char**argv) {
 	essai_1::Essai e(argc, argv);
 	return 0;

@@ -49,6 +49,27 @@ inline const T& Min(const T& t, const T& u)
 	return t < u ? t : u;
 }
 
+namespace essais_01
+{
+	template <typename T, unsigned int sz>
+	Cessai_01<T, sz>::Cessai_01() : _sz(sz)
+	{
+		std::cout << "sz = " << _sz << std::endl;
+	}
+
+	template <typename T, unsigned int sz>
+	void Cessai_01<T, sz>::setT(T t, unsigned int indice)
+	{
+		if (indice < _sz) { _t[indice] = t; }
+	}
+
+	template <typename T, unsigned int sz>
+	void Cessai_01<T, sz>::affiche(unsigned int indice) 
+	{ 
+		if (indice < _sz) { std::cout << "t[" << indice << "] = " << _t[indice] << std::endl; }
+	}
+}
+
 
 int main(int argc, char** argv)
 {
@@ -67,6 +88,14 @@ int main(int argc, char** argv)
 	const double e = 1.21;
 	std::cout << "Min (" << d << ", " << e << ") = " << Min(d, e) << std::endl;
 	std::cout << "Max (" << d << ", " << e << ") = " << Max(d, e) << std::endl;
+
+	essais_01::Cessai_01<int, 5> ce01;
+
+	for (int i = 0; i < 7; ++i)
+	{
+		ce01.setT(i + (3 * -i)^2, i);
+		ce01.affiche(i);
+	}
 
 	return 0;
 }

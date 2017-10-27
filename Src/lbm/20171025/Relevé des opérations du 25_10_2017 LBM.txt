@@ -1,0 +1,171 @@
+Relevé des opérations du 25/10/2017 LBM
+
+--Liste des tables et index
+set lines 2760 pages 9999 long 999999999
+col COLUMN_NAME format a31
+spool %temp%\storeland_index.lst
+select at.table_name, at.status, at.num_rows, at.last_analyzed 
+     , ai.index_name, ai.index_type, ai.uniqueness, ai.leaf_blocks, ai.distinct_keys, ai.status as i_status, ai.last_analyzed as i_last_analyzed, ai.global_stats
+     , aic.column_name, aic.column_position
+  from all_tables at
+       inner join all_indexes ai on ai.table_name = at.table_name 
+       inner join all_ind_columns aic on aic.index_name = ai.index_name  
+ where at.owner  in ( 'STORELAND' )
+ order by at.table_name, ai.index_name, aic.column_position
+;
+spool off
+
+
+Liste des date de snapshots et bornes snap_id
+set lines 199 pages  999
+with vue_dt as (
+select distinct  trunc (s.snap_time) snap_time 
+  from stats$snapshot s
+)
+select d.snap_time
+     , min (s.snap_id) borne_min
+     , max (s.snap_id) borne_max
+  from vue_dt d
+       inner join stats$snapshot s on s.snap_time between d.snap_time and d.snap_time + 1
+ group by d.snap_time
+ order by d.snap_time asc
+;
+SNAP_TIME  BORNE_MIN  BORNE_MAX
+--------- ---------- ----------
+03-OCT-17          1        151
+04-OCT-17        161        591
+05-OCT-17        601       1031
+06-OCT-17       1041       1471
+07-OCT-17       1481       1911
+08-OCT-17       1921       2333
+09-OCT-17       2341       2771
+10-OCT-17       2781       3211
+11-OCT-17       3221       3651
+12-OCT-17       3661       4091
+13-OCT-17       4101       4531
+14-OCT-17       4541       4971
+15-OCT-17       4981       5341
+16-OCT-17       5351       5781
+17-OCT-17       5791       6221
+18-OCT-17       6231       6661
+19-OCT-17       6671       7101
+20-OCT-17       7111       7501
+
+18 rows selected.
+
+
+select to_char (s.snap_time, 'yyyymmdd hh24mi') as snap_time---  trunc (s.snap_time, 'hh24mi') snap_time
+     , min (s.snap_id) borne_min
+     , max (s.snap_id) borne_max
+  from stats$snapshot s
+ where s.snap_time between to_date ('20171020', 'yyyymmdd') and  1+ to_date ('20171020', 'yyyymmdd')
+ group by s.snap_time --- trunc (s.snap_time, 'hh24')
+ order by 1 asc                   
+;
+
+-- Vendredi 20/10/2017
+SNAP_TIME      BORNE_MIN  BORNE_MAX
+------------- ---------- ----------
+20171020 1000       7111       7111
+20171020 1015       7121       7121
+20171020 1030       7131       7131
+20171020 1045       7141       7141
+20171020 1100       7151       7151
+20171020 1115       7161       7161
+20171020 1130       7171       7171
+20171020 1145       7181       7181
+20171020 1200       7191       7191
+20171020 1215       7201       7201
+20171020 1230       7211       7211
+20171020 1245       7221       7221
+20171020 1300       7231       7231
+20171020 1315       7241       7241
+20171020 1330       7251       7251
+20171020 1345       7261       7261
+20171020 1400       7271       7271
+20171020 1415       7281       7281
+20171020 1430       7291       7291
+20171020 1445       7301       7301
+20171020 1500       7311       7311
+20171020 1515       7321       7321
+20171020 1530       7331       7331
+20171020 1545       7341       7341
+20171020 1600       7351       7351
+20171020 1615       7361       7361
+20171020 1630       7371       7371
+20171020 1645       7381       7381
+20171020 1700       7391       7391
+20171020 1715       7401       7401
+20171020 1730       7411       7411
+20171020 1745       7421       7421
+20171020 1800       7431       7431
+20171020 1815       7441       7441
+20171020 1830       7451       7451
+20171020 1845       7461       7461
+20171020 1900       7471       7471
+20171020 1915       7481       7481
+20171020 1930       7491       7491
+20171020 1945       7501       7501
+
+40 rows selected.
+
+with view_snap_id as (
+select to_char(s.snap_time, 'yyyymmdd hh24miss') as snap_time
+     , s.snap_id borne_min
+     , ss.snap_id borne_max
+  from stats$snapshot s 
+       inner join stats$snapshot ss on ss.snap_time = s.snap_time + ( 1/24/4)
+ where s.snap_time between to_date ('20171020', 'yyyymmdd') and  1+ to_date ('20171020', 'yyyymmdd') 
+ order by 1
+)
+select v.*
+     , '@ %temp%\SPREPORT_jea.sql ' || v.borne_min || ' ' || v.borne_max as cmd_line
+  from view_snap_id v
+;
+
+
+
+--  most active SQL in the past minute
+with view_top_60s as (
+  select sql_id
+       , count(1)
+       , round(count(1)
+         / sum(count(1)) over (), 2)pctload
+   from v$active_session_history
+  where sample_time > sysdate -1/24/60
+    and session_type <> 'BACKGROUND'
+  group by sql_id
+  order by 2 desc -- count(1) desc -- 
+)
+select v.*, st.sql_text, to_char (sysdate -1/24/60, 'yyyymmdd hh24:mi') as dt
+  from view_top_60s  v
+       inner join dba_hist_sqltext st on st.sql_id = v.sql_id
+;
+ 
+ select at.table_name, at.status, at.num_rows, at.last_analyzed 
+     , ai.index_name, ai.index_type, ai.uniqueness, ai.leaf_blocks, ai.distinct_keys, ai.status as i_status, ai.last_analyzed as i_last_analyzed, ai.global_stats
+     , aic.column_name, aic.column_position
+  from all_tables at
+       inner join all_indexes ai on ai.table_name = at.table_name 
+       inner join all_ind_columns aic on aic.index_name = ai.index_name  
+ where at.owner  in ( 'STORELAND' )
+   and at.table_name in ('LBM_VENTE_POSTE', 'LBM_CP_HISTO')
+ order by at.table_name, ai.index_name, aic.column_position
+;
+
+
+SQL> show parameters QUERY_REWRITE
+?NAME                                TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+query_rewrite_enabled                string      TRUE
+query_rewrite_integrity              string      enforced
+SQL> show parameters optimizer
+?NAME                                TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+optimizer_dynamic_sampling           integer     2
+optimizer_features_enable            string      10.2.0.5
+optimizer_index_caching              integer     0
+optimizer_index_cost_adj             integer     100
+optimizer_mode                       string      ALL_ROWS
+optimizer_secure_view_merging        boolean     TRUE
+

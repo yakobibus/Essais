@@ -1,0 +1,212 @@
+#
+# $Header: init.ora 25-jul-01.18:03:38 rajayar Exp $
+#
+# Copyright (c) 1991, 2001, Oracle Corporation.  All rights reserved.  */
+#
+##############################################################################
+# Example INIT.ORA file
+#
+# This file is provided by Oracle Corporation to help you customize
+# your RDBMS installation for your site.  Important system parameters
+# are discussed, and example settings given.
+#
+# Some parameter settings are generic to any size installation.
+# For parameters that require different values in different size
+# installations, three scenarios have been provided: SMALL, MEDIUM
+# and LARGE.  Any parameter that needs to be tuned according to
+# installation size will have three settings, each one commented
+# according to installation size.
+#
+# Use the following table to approximate the SGA size needed for the
+# three scenarious provided in this file:
+#
+#                     -------Installation/Database Size------
+#                      SMALL           MEDIUM           LARGE
+#  Block         2K    4500K            6800K           17000K
+#  Size          4K    5500K            8800K           21000K
+#
+# To set up a database that multiple instances will be using, use the
+# same file for all instance.  Place all instance-specific parameters
+# at the end of the file using the <sid>.<parameter_name> = <value> syntax.
+# This way, when you change a public
+# parameter, it will automatically change on all instances.  This is
+# necessary, since all instances must run with the same value for many
+# parameters. For example, if you choose to use private rollback segments,
+# these must be specified differently for each instance, but since all gc_*
+# parameters must be the same on all instances, they should be in one file.
+#
+# INSTRUCTIONS: Edit this file and the other INIT files it calls for
+# your site, either by using the values provided here or by providing
+# your own.
+###############################################################################
+
+# replace "clustdb" with your database name
+db_name = clustdb
+compatible=9.0.0
+
+db_files = 1024                                                       # INITIAL
+#INITIAL
+#db_files=80
+#SMALL 
+#DB_files=400
+#MEDIUM
+#db_files=1000
+#LARGE
+
+control_files = ("\\.\clustdb_control1", "\\.\clustdb_control2")
+
+db_file_multiblock_read_count =  8 # INITIAL
+
+# db_file_multiblock_read_count = 8
+#SMALL 
+#db_file_multiblock_read_count = 16
+#MEDIUM
+#db_file_multiblock_read_count = 32
+#LARGE
+
+#Datawarehouse
+db_block_size=8192                   
+# Transaction processing
+# db_block_size=4096                    
+ 
+open_cursors=300
+
+#Transaction processing
+#sort_area_size=524288                   
+#Datawarehouse 
+sort_area_size=1048576                   
+large_pool_size=1048576                  #Transaction processing, Datawarehouse
+db_cache_size=50331648                   #Datawarehouse, Transaction processing
+java_pool_size=67108864                  #Datawarehouse, Transaction processing
+
+
+# db_block_buffers =  200                 # INITIAL
+# db_block_buffers=100                    #SMALL  
+# db_block_buffers =550                   # MEDIUM
+# db_block_buffers=3200                   #LARGE
+
+#shared_pool_size =  52428800             # INITIAL
+ shared_pool_size = 67108864              # datewarehouse, transaction processing
+
+log_checkpoint_interval = 10000
+
+processes =  59                        # INITIAL
+
+# processes = 50
+#SMALL
+#processes =  100
+#MEDIUM
+#processes = 200 
+#LARGE
+
+parallel_max_servers = 5
+#SMALL
+# parallel_max_servers = 4 x (number of CPUs)
+#MEDIUM
+# parallel_max_servers = 4 x (number of CPUs)
+# LARGE
+
+log_buffer =  8192                                    # INITIAL
+#log_buffer =  8192 
+#SMALL
+#log_buffer = 32768
+#MEDIUM
+#log_buffer = 163840
+#LARGE
+
+# audit_trail = true            # if you want auditing
+# timed_statistics = true       # if you want timed statistics
+max_dump_file_size = 10240      # limit trace file size to 10 K each
+
+# Uncommenting the line below will cause automatic archiving if archiving has
+# been enabled using ALTER DATABASE ARCHIVELOG.
+# log_archive_start = true
+# log_archive_dest = %ORACLE_HOME%/admin/clustdb/arch
+# log_archive_format = "%%ORACLE_SID%%T%TS%S.ARC"
+
+# If using private rollback segments, place lines of the following
+# form at the end of this file:
+# <sid>.rollback_segments = (name1, name2)
+
+# If using public rollback segments, define how many
+# rollback segments each instance will pick up, using the formula
+#   # of rollback segments = transactions / transactions_per_rollback_segment
+# In this example each instance will grab 40/10 = 4:
+# transactions = 40
+# transactions_per_rollback_segment = 10
+
+# Global Naming -- enforce that a dblink has same name as the db it connects to
+global_names = TRUE
+
+# Edit and uncomment the following line to provide the suffix that will be
+# appended to the db_name parameter (separated with a dot) and stored as the
+# global database name when a database is created.  If your site uses
+# Internet Domain names for e-mail, then the part of your e-mail address after
+# the '@' is a good candidate for this parameter value.
+
+# db_domain = us.acme.com       # global database name is db_name.db_domain
+
+# Uncomment the following line if you wish to enable the Oracle Trace product
+# to trace server activity.  This enables scheduling of server collections
+# from the Oracle Enterprise Manager Console.
+# Also, if the oracle_trace_collection_name parameter is non-null,
+# every session will write to the named collection, as well as enabling you
+# to schedule future collections from the console.
+
+# oracle_trace_enable = TRUE
+
+# define directories to store trace and alert files
+background_dump_dest=%ORACLE_HOME%/admin/clustdb/bdump
+user_dump_dest=%ORACLE_HOME%/admin/clustdb/
+
+db_block_size = 4096
+
+remote_login_passwordfile = exclusive
+
+# text_enable = TRUE
+
+# The following parameters are needed for the Advanced Replication Option
+
+job_queue_processes = 2
+# job_queue_processes = 4            #datawarehouse
+
+# job_queue_interval = 10
+# job_queue_keep_connections = false
+
+distributed_transactions = 5
+
+open_links = 4
+
+# The following parameters are instance-specific parameters that are
+# specified for two instances named clustdb1 and clustdb2
+
+undo_management=AUTO            # For automatic undo management
+                                # = MANUAL For manual/RBS undo management
+cluster_database= true
+cluster_database_instances=2
+remote_listener=LISTENERS_CLUSTDB
+
+# First instance specific parameters
+clustdb1.thread=1
+clustdb1.instance_name=clustdb1
+clustdb1.instance_number=1
+clustdb1.local_listener=listener_clustdb1
+clustdb1.remote_login_passwordfile = exclusive
+# Comment out clustdb1.undo_tablespace and uncomment clustdb1.rollback_segments
+# when undo_management=MANUAL
+clustdb1.undo_tablespace = UNDOTBS1
+# clustdb1.rollback_segments = (rbs1_1,rbs1_2)
+
+# Second instance specific parameters
+
+clustdb2.thread=2
+clustdb2.instance_name = clustdb2
+clustdb2.instance_number = 2
+clustdb2.local_listener = listener_clustdb2
+clustdb2.remote_login_passwordfile = exclusive
+# Comment out clustdb2.undo_tablespace and uncomment clustdb2.rollback_segments
+# when undo_management=MANUAL
+clustdb2.undo_tablespace = UNDOTBS2
+# clustdb2.rollback_segments = (rbs2_1,rbs2_2)
+
+

@@ -2496,9 +2496,9 @@ ttitle lef 'OS Statistics  '-
        lef '-> ordered by statistic type (CPU use, Virtual Memory, Hardware Config), Name' -
        skip 2;
 
-column osn  format    a25                  heading 'Statistic' trunc;
-column dif  format  9,999,999,999,999,990  heading 'Total';
-column ps   format      9,999,999,999,990  heading 'per Second';
+column osn  format  a25                  heading 'Statistic' trunc;
+column dif  format  9,999,999,999,999,999,990  heading 'Total';
+column ps   format  9,999,999,999,990  heading 'per Second';
 column styp noprint
 
 select osn.stat_name                                              osn
@@ -2811,7 +2811,7 @@ col filename   format a52           heading 'Filename'   trunc;
 col reads      format 9,999,999,990 heading 'Reads'
 col atpwt      format 990.0         heading 'Av|BufWt|(ms)' just c;
 col atpr       format 90.0          heading 'Av|Rd|(ms)'    just c;
-col mrt        format 99            heading 'Mx|Rd|Bkt'     just c;
+col mrt        format 999999        heading 'Mx|Rd|Bkt'     just c;
 break on tsname skip 1;
 
 select e.tsname

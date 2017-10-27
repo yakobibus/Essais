@@ -1,0 +1,171 @@
+# %temp%\JEbana_Actions_2.txt
+# ---------------------------
+
+Serveur : MARCELLO
+
+1. Tnsping Ok sur STORPROD
+
+2. Repository des fichiers Statspack :
+   -> e:\oracle\product\10.2.0\db_1\ccr\sysman\admin\scripts\db\config
+       ::> spset.sql
+   -> e:\oracle\product\10.2.0\db_1\RDBMS\ADMIN
+   -> e:\oracle\product\10.2.0\db_1\sysman\admin\scripts\db\config
+       ::> spset.sql
+
+3. Installation des Statspack
+  3.1 Creation d'1 TBS spécifique : PERFTBS
+
+  Script : %temp%\perf_createTBS.sql
+  ::> verif : 
+      select * from dba_tablespaces where tablespace_name= 'PERFTBS' ;
+      Ok
+
+   3.2 Lancement du script SPCREATE.sql (en sysdba)
+       3.2.1.  perfstat_password: perf0Stat
+       3.2.2.  default_tablespace: PERFTBS
+       3.2.3.  temporary_tablespace: TEMP
+
+4. Validation des parametres de la DB :
+SQL> show parameters job_queue_processes
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+job_queue_processes                  integer     10
+
+
+SQL> show parameters statis
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+statistics_level                     string      TYPICAL
+timed_os_statistics                  integer     0
+timed_statistics                     boolean     TRUE
+
+ - job_queue_processes  : 10
+ - statistics_level     : TYPICAL
+ - timed_os_statistics  : 0
+ - timed_statistics     : TRUE
+
+
+5. Paramétrage de la prise de snapshots
+5.1.
+declare
+  Ci_snap_level constant pls_integer := 6 ; -- profondeur de prise de vue jusqu'aux explain plan
+begin
+  perfstat.statspack.SNAP (
+ i_snap_level => Ci_snap_level 
+);
+end ;
+/
+
+begin
+  perfstat.statspack.modify_statspack_parameter  ;
+end ;
+/
+
+
+
+5.2. Scripter les clichés dans un scheduled job
+
+/*
+begin
+  DBMS_SCHEDULER.DROP_JOB (job_name => upper('perfstat_snapshot')); 
+end ;
+/
+*/
+
+GRANT MANAGE SCHEDULER TO perfstat ;
+grant create job to perfstat ;
+grant create any job to perfstat ;
+
+BEGIN
+  DBMS_SCHEDULER.CREATE_JOB (
+     job_name          =>  'perfstat_snapshot'
+   , job_type          =>  'PLSQL_BLOCK'
+   , job_action        =>  '
+DECLARE
+  Ci_snap_level constant pls_integer := 6 ; 
+  dummy_hh  pls_integer ;
+BEGIN
+  select to_char (sysdate, ''hh24'') into dummy_hh from dual ;
+  if ( dummy_hh between 10 and 20 ) then
+    perfstat.statspack.SNAP ( i_snap_level => Ci_snap_level ); 
+  end if ;
+END;
+'
+   , start_date        => TO_TIMESTAMP_TZ ( '20171003 1000', 'yyyymmdd hh24mi')
+   , repeat_interval   =>  'FREQ=MINUTELY;INTERVAL=15'
+   , end_date          =>  TO_TIMESTAMP_TZ ( '20171020 2000', 'yyyymmdd hh24mi')
+   , enabled           => TRUE
+   , auto_drop         =>  FALSE
+   , comments          =>  'Prise de cliches par perfstat'
+  );
+END;
+/
+
+
+
+
+select * from stats$snapshot ;
+
+
+
+5.3 Vérif du paramétrage :
+    SELECT * FROM perfstat.stats$statspack_parameter ;
+
+6. Ajouter le paramétrage du calcul des stats du schema :
+   -- execute dbms_utility.analyze_schema('PERFSTAT','COMPUTE'); 
+
+BEGIN
+  DBMS_SCHEDULER.CREATE_JOB (
+     job_name          =>  'perfstat_stats_compute'
+   , job_type          =>  'PLSQL_BLOCK'
+   , job_action        =>  '
+DECLARE
+  Ci_snap_level constant pls_integer := 6 ; 
+  dummy_hh  pls_integer ;
+BEGIN
+  select to_char (sysdate, ''hh24'') into dummy_hh from dual ;
+  if ( dummy_hh between 8 and 20 ) then
+      Begin  dbms_utility.analyze_schema(''PERFSTAT'',''COMPUTE''); End ;    ; 
+  end if ;
+END;
+'
+   , start_date        => TO_TIMESTAMP_TZ ( '20171003 0807', 'yyyymmdd hh24mi')
+   , repeat_interval   =>  'FREQ=HOURLY;INTERVAL=8'
+   , end_date          =>  TO_TIMESTAMP_TZ ( '20171020 2000', 'yyyymmdd hh24mi')
+   , enabled           => TRUE
+   , auto_drop         =>  FALSE
+   , comments          =>  'Prise de cliches par perfstat'
+  );
+END;
+/
+
+
+
+
+   begin
+     dbms_utility.analyze_schema('PERFSTAT','COMPUTE');
+   end ;
+/
+
+
+
+7. Exploiter :
+
+@ E:\oracle\product\10.2.0\db_1\RDBMS\ADMIN\SPREPORT.SQL 1 4  %temp%\perfstat_20171003_1548
+
+
+----
+select min (s.snap_id)
+     , max (s.snap_id)
+     , trunc (sysdate)
+  from stats$snapshot s
+ where s.snap_time between trunc(sysdate) and trunc (sysdate + 1)
+  order by 1 asc
+;
+
+
+
+
+

@@ -1,0 +1,190 @@
+<?xml version='1.0'  encoding='Cp1252' ?>
+<RESULTS>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[257sdtqsu2276]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[285]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[UPDATE LBM_VENTE_POSTE V SET TOPGU = 2 WHERE STECAISSE IN (1, 2) AND APPL = 'SAP' AND ROWNUM <= :B3 AND HCA IS NULL AND DEPARTEMENT = :B2 AND ( (TYPEGEST != '5' AND TYPEGEST != '6' AND :B1 = 'F') OR ((TYPEGEST = '5' OR TYPEGEST = '6') AND :B1 = 'G') ) AND TOPGU = 0 AND NUMCDECLT IS NULL AND TRUNC (DATEHTRANS) = (SELECT TRUNC (DATEHTRANS) FROM (SELECT DATEHTRANS FROM LBM_VENTE_POSTE V LEFT JOIN LBM_CP_HISTO H ON V.CP = H.CP WHERE STECAISSE IN (1, 2) AND V.APPL = 'SAP' AND V.HCA IS NULL AND DEPARTEMENT = :B2 AND ( ( V.TYPEGEST != '5' AND V.TYPEGEST != '6' AND :B1 = 'F' ) OR ( (V.TYPEGEST = '5' OR V.TYPEGEST = '6') AND :B1 = 'G' ) ) AND TOPGU = 0 AND ( (DATEHTRANS < H.DATEBLOCAGEINVENTAIRE) OR (H.DATEBLOCAGEINVENTAIRE IS NULL) AND NUMCDECLT IS NULL ) ORDER BY DATEHTRANS) WHERE ROWNUM <= 1) AND ( (DATEHTRANS < (SELECT DATEBLOCAGEINVENTAIRE FROM LBM_CP_HISTO H WHERE H.CP = V.CP)) OR ((SELECT DATEBLOCAGEINVENTAIRE FROM LBM_CP_HISTO H WHERE H.CP = V.CP) IS NULL) )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[6]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Update]]></COLUMN>
+	</ROW>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[dddbga9vfg8h4]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[17]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[SELECT  COUNT(*)
+FROM lbm_vente_poste v
+WHERE stecaisse IN (1, 2)
+           AND appl = 'SAP'
+           AND hca IS NULL
+           AND departement = '736'
+           AND (v.typegest = '5' OR v.typegest = '6')
+           AND topgu = 0
+           AND numcdeclt IS NULL
+           AND TRUNC (datehtrans) =
+                  (SELECT TRUNC (datehtrans)
+                     FROM (SELECT   datehtrans
+                               FROM lbm_vente_poste v2 LEFT JOIN lbm_cp_histo h
+                                    ON v2.cp = h.cp
+                              WHERE stecaisse IN (1, 2)
+                                AND v2.appl = 'SAP'
+                                AND v2.hca IS NULL
+                                AND departement = '736'
+                                AND (v2.typegest = '5' OR v2.typegest = '6')
+                                AND topgu = 0
+                                AND (   (datehtrans < h.dateblocageinventaire)
+                                     OR     (h.dateblocageinventaire IS NULL)
+                                        AND numcdeclt IS NULL
+                                    )
+                           ORDER BY datehtrans)
+                    WHERE ROWNUM <= 1)
+           AND (   (datehtrans < (SELECT dateblocageinventaire
+                                    FROM lbm_cp_histo h
+                                   WHERE h.cp = v.cp))
+                OR ((SELECT dateblocageinventaire
+                       FROM lbm_cp_histo h
+                      WHERE h.cp = v.cp) IS NULL)
+               )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[3]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Select]]></COLUMN>
+	</ROW>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[8b8cmhhxzruc1]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[17]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[SELECT  COUNT(*)
+FROM lbm_vente_poste v
+WHERE stecaisse IN (1, 2)
+           AND appl = 'SAP'
+           AND hca IS NULL
+           AND departement = '736'
+           AND (v.typegest != '5' AND v.typegest != '6')
+           AND topgu = 0
+           AND numcdeclt IS NULL
+           AND TRUNC (datehtrans) =
+                  (SELECT TRUNC (datehtrans)
+                     FROM (SELECT   datehtrans
+                               FROM lbm_vente_poste v2 LEFT JOIN lbm_cp_histo h
+                                    ON v2.cp = h.cp
+                              WHERE stecaisse IN (1, 2)
+                                AND v2.appl = 'SAP'
+                                AND v2.hca IS NULL
+                                AND departement = '736'
+                                AND (v2.typegest != '5' AND v2.typegest != '6')
+                                AND topgu = 0
+                                AND (   (datehtrans < h.dateblocageinventaire)
+                                     OR     (h.dateblocageinventaire IS NULL)
+                                        AND numcdeclt IS NULL
+                                    )
+                           ORDER BY datehtrans)
+                    WHERE ROWNUM <= 1)
+           AND (   (datehtrans < (SELECT dateblocageinventaire
+                                    FROM lbm_cp_histo h
+                                   WHERE h.cp = v.cp))
+                OR ((SELECT dateblocageinventaire
+                       FROM lbm_cp_histo h
+                      WHERE h.cp = v.cp) IS NULL)
+               )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[3]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Select]]></COLUMN>
+	</ROW>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[ghhy06vqavjyj]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[15]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[SELECT  COUNT(*)
+FROM lbm_vente_poste v
+WHERE (TRUNC (datehtrans), numcdeclt, departement) =
+              (SELECT TRUNC (datehtrans) AS datehtrans, numcdeclt AS numcdeclt,
+                      departement AS departement
+                 FROM (SELECT   v2.datehtrans AS datehtrans,
+                                numcdeclt AS numcdeclt,
+                                departement AS departement
+                           FROM lbm_vente_poste v2 
+                           INNER JOIN lbm_commande_entete c
+                                ON v2.numcdeclt = c.numcdecli
+                                LEFT JOIN lbm_cp_histo h ON v2.cp = h.cp
+                          WHERE v2.stecaisse = '1'
+                            AND v2.appl = 'SAP'
+                            AND v2.hca IS NULL
+                           AND (v2.typegest = '5' OR v2.typegest = '6')
+                                  
+                            AND topgu = 0
+                            AND (   (v2.datehtrans < h.dateblocageinventaire)
+                                 OR (h.dateblocageinventaire IS NULL)
+                                )
+                            AND numcdeclt IS NOT NULL
+                       ORDER BY v2.datehtrans
+                       )
+                WHERE ROWNUM <= 1)
+       AND stecaisse = '1'
+       AND appl = 'SAP'
+       AND hca IS NULL
+       AND (v.typegest = '5' OR v.typegest = '6' )
+            
+       AND topgu = 0
+       AND (   (datehtrans < (SELECT dateblocageinventaire
+                                FROM lbm_cp_histo h
+                               WHERE h.cp = v.cp AND ROWNUM <= 1))
+            OR ((SELECT dateblocageinventaire
+                   FROM lbm_cp_histo h
+                  WHERE h.cp = v.cp AND ROWNUM <= 1) IS NULL)
+           )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[3]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Select]]></COLUMN>
+	</ROW>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[g923cu73xq31h]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[12]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[SELECT  COUNT(*)
+FROM lbm_vente_poste v
+WHERE (TRUNC (datehtrans), numcdeclt, departement) =
+              (SELECT TRUNC (datehtrans) AS datehtrans, numcdeclt AS numcdeclt,
+                      departement AS departement
+                 FROM (SELECT   v2.datehtrans AS datehtrans,
+                                numcdeclt AS numcdeclt,
+                                departement AS departement
+                           FROM lbm_vente_poste v2 
+                           INNER JOIN lbm_commande_entete c
+                                ON v2.numcdeclt = c.numcdecli
+                                LEFT JOIN lbm_cp_histo h ON v2.cp = h.cp
+                          WHERE v2.stecaisse = '1'
+                            AND v2.appl = 'SAP'
+                            AND v2.hca IS NULL
+                           AND (v2.typegest != '5' AND v2.typegest != '6')
+                                  
+                            AND topgu = 0
+                            AND (   (v2.datehtrans < h.dateblocageinventaire)
+                                 OR (h.dateblocageinventaire IS NULL)
+                                )
+                            AND numcdeclt IS NOT NULL
+                       ORDER BY v2.datehtrans
+                       )
+                WHERE ROWNUM <= 1)
+       AND stecaisse = '1'
+       AND appl = 'SAP'
+       AND hca IS NULL
+       AND (v.typegest != '5' AND v.typegest != '6' )
+            
+       AND topgu = 0
+       AND (   (datehtrans < (SELECT dateblocageinventaire
+                                FROM lbm_cp_histo h
+                               WHERE h.cp = v.cp AND ROWNUM <= 1))
+            OR ((SELECT dateblocageinventaire
+                   FROM lbm_cp_histo h
+                  WHERE h.cp = v.cp AND ROWNUM <= 1) IS NULL)
+           )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[3]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Select]]></COLUMN>
+	</ROW>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[8fh6a97d9xz9v]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[1]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[INSERT INTO VENTES_ARTICLE_MAG_PERIODE (CODEMAGASIN, CODEINTERNEARTICLE, DATEDEBUT, DATEFIN, VOLVENTES, CABRUTTTC, MTTVA, MTREMISES, MTSURMARQUES, MTSOLDES, VALACHATHT, CODESAISON, CODETYPEPERIODE) VALUES (:B13 , :B12 , :B11 , :B10 , :B9 , :B8 , :B7 , :B6 , :B5 , :B4 , :B3 , :B2 , :B1 )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[2]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Insert]]></COLUMN>
+	</ROW>
+	<ROW>
+		<COLUMN NAME="SQL_ID"><![CDATA[4bh94gqk2fn3s]]></COLUMN>
+		<COLUMN NAME="NB"><![CDATA[1]]></COLUMN>
+		<COLUMN NAME="SQL_TEXT"><![CDATA[INSERT INTO AGREGAT_TICKET_VENTE (CODEMAGASIN, JOURDEVENTE, CODECAISSE, NUMTICKET, TICKETANNULE, CODECLIENT, CODECARTEFIDELITECLIENT, CODEDEVISE, VALACHATHT, MTREMISE, CANETNORMAL, CANETPROMO, CANETSOLDE, CANETRECETTE,CANETDEPENSE , NBPOINTSTICKET, NBPOINTSACTIONSMARKETING, LIEUCALCULPOINTS, DATECALCULPOINTS, CODEETATCALCULPOINT, CANETEXCLUFIDELITE,MTTVA) VALUES (:B22 , TRUNC(:B21 ), :B20 , :B19 , :B18 , :B17 , :B16 , :B15 , :B14 , :B13 , :B12 , :B11 , :B10 , :B9 ,:B8 , :B7 , :B6 , :B5 , :B4 , :B3 , :B2 ,:B1 )]]></COLUMN>
+		<COLUMN NAME="COMMAND_TYPE"><![CDATA[2]]></COLUMN>
+		<COLUMN NAME="DECODE(DHS.COMMAND_TYPE,3,'SELECT',47,'PL_SQL',2,'INSERT',6,'UPDATE')"><![CDATA[Insert]]></COLUMN>
+	</ROW>
+</RESULTS>

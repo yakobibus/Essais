@@ -4,6 +4,7 @@
 # include <string>
 
 # include "Essais.h"
+# include "Smart_Ptr.h"
 
 // shared_ptr
 
@@ -70,9 +71,10 @@ namespace essais_01
 	}
 }
 
-
 int main(int argc, char** argv)
 {
+	essais_smart_prt::Dummy_Essais_1 dummyEss_1 ;
+
 	std::cout << "[" << f_string ((argc > 1 ? argv [1] : nullptr)) << "]" << std::endl;
 	char z[] = { 'Q', 'u', 'i', ' ', 'i', 'r', 'a', 's', '-', 't', 'u', ' ', 'v', 'o', 'i', 'r', ' ', 'd', 'e', 'm', 'a', 'i', 'n', ' ', '?', 0 };
 	std::string s = {'J', 'e', ' ', 'n', 'e', ' ', 's', 'u', 'i', 's', ' ', 'p', 'a', 's', ' ', 'd', 'e', ' ', 'c', 'e', 'u', 'x', ' ', 'l', 'A', ' ', '!'};

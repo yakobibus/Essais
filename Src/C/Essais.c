@@ -73,7 +73,9 @@ namespace essais_01
 
 int main(int argc, char** argv)
 {
+	std::cout << "--------------" << std::endl;
 	essais_smart_prt::Dummy_Essais_1 dummyEss_1 ;
+	std::cout << "==============" << std::endl;
 
 	std::cout << "[" << f_string ((argc > 1 ? argv [1] : nullptr)) << "]" << std::endl;
 	char z[] = { 'Q', 'u', 'i', ' ', 'i', 'r', 'a', 's', '-', 't', 'u', ' ', 'v', 'o', 'i', 'r', ' ', 'd', 'e', 'm', 'a', 'i', 'n', ' ', '?', 0 };

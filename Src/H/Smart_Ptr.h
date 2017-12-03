@@ -8,28 +8,29 @@
 
 namespace essais_smart_prt
 {
-	class B
+	class Bclass
 	{
 	public :
-		B() = default;
-		virtual ~B() = default;
-		B(const B& b) = default ;
-		B& operator = (const B& b) = default;
+		Bclass() = default;
+		virtual ~Bclass() = default;
+		Bclass(const Bclass& b) = default ;
+		Bclass& operator = (const Bclass& b) = default;
 
-		virtual void bar() ; // { std::cout << "B::bar\n"; }
+		virtual void bar() ; // { std::cout << "Bclass::bar\n"; }
 	private :
 	};
 
-	class D : public B
+	class Dclass : public Bclass
 	{
 	public :
-		D() ; // { std::cout << "D::D\n"; }
-		~D() ; // { std::cout << "D::~D\n"; }
-		D(const D& d) = default;
-		D& operator = (const D& d) = default;
+		Dclass(std::string aName) ; // { std::cout << "Dclass::Dclass\n"; }
+		~Dclass() ; // { std::cout << "Dclass::~Dclass\n"; }
+		Dclass(const Dclass& d) = default;
+		Dclass& operator = (const Dclass& d) = default;
 
-		void bar() override ; // { std::cout << "D::bar\n"; }
+		void bar() override ; // { std::cout << "Dclass::bar\n"; }
 	private :
+		std::string _aName;
 	};
 
 	class Dummy_Essais_1
@@ -41,7 +42,7 @@ namespace essais_smart_prt
 		Dummy_Essais_1& operator = (const Dummy_Essais_1& d) = default;
 
 		// a function consuming a unique_ptr can take it by value or by rvalue reference
-		std::unique_ptr<D> pass_through(std::unique_ptr<D> p) ;
+		std::unique_ptr<Dclass> pass_through(std::unique_ptr<Dclass> p) ;
 
 	private :
 	};

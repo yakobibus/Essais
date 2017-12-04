@@ -5,6 +5,7 @@
 
 # include "Essais.h"
 # include "Smart_Ptr.h"
+# include "fileEssais.h"
 
 // shared_ptr
 
@@ -73,6 +74,9 @@ namespace essais_01
 
 int main(int argc, char** argv)
 {
+	std::cout << "++++++++++++++" << std::endl;
+	file_essais::EssaisFichier ef;
+
 	std::cout << "--------------" << std::endl;
 	essais_smart_prt::Dummy_Essais_1 dummyEss_1 ;
 	std::cout << "==============" << std::endl;

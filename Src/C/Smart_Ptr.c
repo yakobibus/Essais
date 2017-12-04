@@ -47,25 +47,35 @@ namespace essais_smart_prt
 
 		std::cout << "Runtime polymorphism demo\n";
 		{
-			std::unique_ptr<Bclass> p = std::make_unique<Dclass>(); // p is a unique_ptr that owns a D
+			std::unique_ptr<Bclass> p = std::make_unique<Dclass>("P_an_rtPolymorph ptr"); // p is a unique_ptr that owns a Dclass
 														  // as a pointer to base
 			p->bar(); // virtual dispatch
 
 			std::vector<std::unique_ptr<Bclass>> v;  // unique_ptr can be stored in a container
-			v.push_back(std::make_unique<Dclass>());
+			v.push_back(std::make_unique<Dclass>("mkUnique rtPolymorphism"));
 			v.push_back(std::move(p));
-			v.emplace_back(new Dclass);
-			for (auto& p : v) p->bar(); // virtual dispatch
+			v.emplace_back(new (Dclass)("z....new....z"));
+			for (auto& p : v) { p->bar(); } // virtual dispatch
 		} // ~D called 3 times
 		std::cout << std::endl;
 
 		std::cout << "Custom deleter demo\n";
-		std::ofstream("demo.txt") << 'x'; // prepare the file to read
+		std::ofstream("demo.txt") << "x files series and Mr Mulder, not Bond, Fox Mulder.\n- Hi Fox.\n- Hi James"
+			"For a double 0 or comming from the next galaxy, we're a mystery" << std::endl ; // prepare the file to read
 		{
-			std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen("demo.txt", "r"),
-				&std::fclose);
-			if (fp) // fopen could have failed; in which case fp holds a null pointer
-				std::cout << (char)std::fgetc(fp.get()) << '\n';
+			std::unique_ptr<std::FILE, decltype(&std::fclose)> fp(std::fopen("demo.txt", "r"), &std::fclose);
+			if (fp)  // fopen could have failed; in which case fp holds a null pointer
+			{
+				while (char c = (char)std::fgetc(fp.get())) 
+				{
+					if (c == EOF)
+					{
+						break; 
+					} 
+					std::cout << c;			
+				} 
+				std::cout << std::endl;
+			}
 		} // fclose() called here, but only if FILE* is not a null pointer
 		  // (that is, if fopen succeeded)
 		std::cout << std::endl;

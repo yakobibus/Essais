@@ -77,6 +77,7 @@ namespace essais_tests
 	TestEssais::TestEssais()
 	{
 		testEssaisFichier();
+
 		//testSmartPtr();
 	}
 

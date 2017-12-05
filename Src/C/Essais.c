@@ -72,38 +72,60 @@ namespace essais_01
 	}
 }
 
+namespace essais_tests
+{
+	TestEssais::TestEssais()
+	{
+		testEssaisFichier();
+		//testSmartPtr();
+	}
+
+	void TestEssais::testEssais01(void)
+	{
+		essais_01::Cessai_01<int, 5> ce01;
+
+		for (int i = 0; i < 7; ++i)
+		{
+			ce01.setT(i + (3 * -i) ^ 2, i);
+			ce01.affiche(i);
+		}
+	}
+
+	void TestEssais::testMinMax(void)
+	{
+		const int i = 11;
+		const int j = 21;
+		std::cout << "Min (" << i << ", " << j << ") = " << Min(i, j) << std::endl;
+		std::cout << "Max (" << i << ", " << j << ") = " << Max(i, j) << std::endl;
+
+		const double d = 11.34;
+		const double e = 1.21;
+		std::cout << "Min (" << d << ", " << e << ") = " << Min(d, e) << std::endl;
+		std::cout << "Max (" << d << ", " << e << ") = " << Max(d, e) << std::endl;
+	}
+
+	void TestEssais::testTblStatiques(int argc, char** argv)
+	{
+		std::cout << "[" << f_string((argc > 1 ? argv[1] : nullptr)) << "]" << std::endl;
+		char z[] = { 'Q', 'u', 'i', ' ', 'i', 'r', 'a', 's', '-', 't', 'u', ' ', 'v', 'o', 'i', 'r', ' ', 'd', 'e', 'm', 'a', 'i', 'n', ' ', '?', 0 };
+		std::string s = { 'J', 'e', ' ', 'n', 'e', ' ', 's', 'u', 'i', 's', ' ', 'p', 'a', 's', ' ', 'd', 'e', ' ', 'c', 'e', 'u', 'x', ' ', 'l', 'A', ' ', '!' };
+		std::cout << s << ", " << z << std::endl;
+	}
+
+	void TestEssais::testSmartPtr(void)
+	{
+		essais_smart_prt::Dummy_Essais_1 dummyEss_1;
+	}
+
+	void TestEssais::testEssaisFichier(void)
+	{
+		file_essais::EssaisFichier ef;
+	}
+}
+
 int main(int argc, char** argv)
 {
-	std::cout << "++++++++++++++" << std::endl;
-	file_essais::EssaisFichier ef;
-
-	std::cout << "--------------" << std::endl;
-	essais_smart_prt::Dummy_Essais_1 dummyEss_1 ;
-	std::cout << "==============" << std::endl;
-
-	std::cout << "[" << f_string ((argc > 1 ? argv [1] : nullptr)) << "]" << std::endl;
-	char z[] = { 'Q', 'u', 'i', ' ', 'i', 'r', 'a', 's', '-', 't', 'u', ' ', 'v', 'o', 'i', 'r', ' ', 'd', 'e', 'm', 'a', 'i', 'n', ' ', '?', 0 };
-	std::string s = {'J', 'e', ' ', 'n', 'e', ' ', 's', 'u', 'i', 's', ' ', 'p', 'a', 's', ' ', 'd', 'e', ' ', 'c', 'e', 'u', 'x', ' ', 'l', 'A', ' ', '!'};
-	std::cout << s << ", " << z << std::endl;
-
-
-	const int i = 11;
-	const int j = 21;
-	std::cout << "Min (" << i << ", " << j << ") = " << Min(i, j) << std::endl;
-	std::cout << "Max (" << i << ", " << j << ") = " << Max(i, j) << std::endl;
-
-	const double d = 11.34;
-	const double e = 1.21;
-	std::cout << "Min (" << d << ", " << e << ") = " << Min(d, e) << std::endl;
-	std::cout << "Max (" << d << ", " << e << ") = " << Max(d, e) << std::endl;
-
-	essais_01::Cessai_01<int, 5> ce01;
-
-	for (int i = 0; i < 7; ++i)
-	{
-		ce01.setT(i + (3 * -i)^2, i);
-		ce01.affiche(i);
-	}
+	essais_tests::TestEssais te;
 
 	return 0;
 }

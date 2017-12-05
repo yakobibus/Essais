@@ -9,7 +9,9 @@ namespace file_essais
 	{
 	public:
 		EssaisFichier(std::string fileName = "dummyFile.txt"); //: _fileName ("monBeauFichier.txt") 
-		~EssaisFichier() { delete _fFichier; }
+		~EssaisFichier();
+		EssaisFichier(const EssaisFichier& ef);
+		EssaisFichier& operator = (const EssaisFichier& ef);
 	private:
 		std::string _fileName;
 		std::fstream* _fFichier;

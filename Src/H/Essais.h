@@ -22,4 +22,23 @@ namespace essais_01
 	};
 }
 
+namespace essais_tests
+{
+	class TestEssais
+	{
+	public :
+		TestEssais();
+		~TestEssais() = default;
+		TestEssais(const TestEssais& te) = default;
+		TestEssais& operator = (const TestEssais& te) = default;
+		//
+		void testEssais01(void);
+		void testMinMax(void);
+		void testTblStatiques(int argc, char** argv);
+		void testSmartPtr(void);
+		void testEssaisFichier(void);
+	private :
+	};
+}
+
 # endif // ESSAIS_H

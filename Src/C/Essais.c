@@ -2,6 +2,8 @@
 
 # include <iostream>
 # include <string>
+//# include <cstdio>
+# include <cstring>
 
 # include "Essais.h"
 # include "Smart_Ptr.h"
@@ -74,9 +76,11 @@ namespace essais_01
 
 namespace essais_tests
 {
-	TestEssais::TestEssais()
+	TestEssais::TestEssais(int fileRange = -1, std::string fileName = "dummy.txt") : _fileName (fileName)
 	{
-		testEssaisFichier();
+		testLireFichierTxt (fileRange, _fileName);
+
+		// testEssaisFichier();
 
 		//testSmartPtr();
 	}
@@ -122,11 +126,34 @@ namespace essais_tests
 	{
 		file_essais::EssaisFichier ef;
 	}
+
+	void TestEssais::testLireFichierTxt(int fileRange, std::string fileName)
+	{
+		afficheArgs(fileRange, fileName);
+		file_essais::LireFichierTxt lft(fileName);
+		std::cout << std::endl;
+	}
+
+	void TestEssais::afficheArgs(int argPosition, std::string argValue)
+	{
+		std::string argString = std::to_string(argPosition) + ". " + argValue;
+		char* zTrait = new char [1 + argString.length()];
+		memset(zTrait, 0, 1 + argString.length());
+		memset(zTrait, '-', argString.length());
+		std::cout << std::endl << argString << std::endl;
+		std::cout << zTrait << std::endl;
+	}
 }
 
 int main(int argc, char** argv)
 {
-	essais_tests::TestEssais te;
+	if (argc > 0)
+	{
+		for (int ii = 1; ii < argc; ++ii)
+		{
+			essais_tests::TestEssais te(ii, argv[ii]);
+		}
+	}
 
 	return 0;
 }

@@ -27,7 +27,7 @@ namespace essais_tests
 	class TestEssais
 	{
 	public :
-		TestEssais();
+		TestEssais(int fileRange, std::string fileName);
 		~TestEssais() = default;
 		TestEssais(const TestEssais& te) = default;
 		TestEssais& operator = (const TestEssais& te) = default;
@@ -37,7 +37,11 @@ namespace essais_tests
 		void testTblStatiques(int argc, char** argv);
 		void testSmartPtr(void);
 		void testEssaisFichier(void);
+		void testLireFichierTxt(int fileRange, std::string fileName);
+
+		void afficheArgs(int argPosition, std::string argValue);
 	private :
+		std::string _fileName;
 	};
 }
 

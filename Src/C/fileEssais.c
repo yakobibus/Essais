@@ -189,13 +189,11 @@ namespace file_essais
 		memset(zDummy, 0, 1 + _inFileSize);
 		_ifsHandle->read(zDummy, _inFileSize);
 		_data = zDummy;
-		std::cout << "_data.length() = " << _data.length() << std::endl;
 		for (int ii = 0; ii < _data.length(); ++ii)
 		{
 			zDummy[ii] = _data.c_str()[-1 - ii + _data.length()];
 		}
 		_reversedData = zDummy;
-		std::cout << "_reversedData.length() = " << _reversedData.length() << std::endl;
 		delete[] zDummy;
 	}
 

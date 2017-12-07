@@ -78,7 +78,9 @@ namespace essais_tests
 {
 	TestEssais::TestEssais(int fileRange = -1, std::string fileName = "dummy.txt") : _fileName (fileName)
 	{
-		testLireFichierTxt (fileRange, _fileName);
+		testEcrireFichierTxt (fileName);
+
+		// testLireFichierTxt (fileRange, _fileName);
 
 		// testEssaisFichier();
 
@@ -132,6 +134,11 @@ namespace essais_tests
 		afficheArgs(fileRange, fileName);
 		file_essais::LireFichierTxt lft(fileName);
 		std::cout << std::endl;
+	}
+
+	void TestEssais::testEcrireFichierTxt(std::string fileName)
+	{
+		file_essais::EcrireFichierTxt eft(fileName);
 	}
 
 	void TestEssais::afficheArgs(int argPosition, std::string argValue)

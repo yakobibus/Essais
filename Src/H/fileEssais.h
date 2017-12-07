@@ -37,6 +37,26 @@ namespace file_essais
 		long _fileSize;
 		std::string _dataString;
 	};
+
+	class EcrireFichierTxt
+	{
+	public :
+		EcrireFichierTxt(std::string fileName);
+		~EcrireFichierTxt();
+		EcrireFichierTxt(const EcrireFichierTxt& eft) ;
+		EcrireFichierTxt& operator = (const EcrireFichierTxt& eft) ;
+		//
+		void readFile(void);
+		void writeFile(void);
+		void setInFileSize(void);
+	private :
+		std::string _fileName;
+		std::ofstream* _ofsHandle;
+		std::ifstream* _ifsHandle;
+		std::string _data ;
+		std::string _reversedData;
+		long _inFileSize ;
+	};
 }
 
 # endif // FILE_ESSAIS_H

@@ -38,6 +38,7 @@ namespace essais_tests
 		void testSmartPtr(void);
 		void testEssaisFichier(void);
 		void testLireFichierTxt(int fileRange, std::string fileName);
+		void testEcrireFichierTxt(std::string fileName);
 
 		void afficheArgs(int argPosition, std::string argValue);
 	private :

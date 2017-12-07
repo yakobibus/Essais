@@ -9,9 +9,9 @@
 
 namespace file_essais
 {
-	EssaisFichier::EssaisFichier(std::string fileName) : _fileName(fileName) 
+	EssaisFichier::EssaisFichier(std::string fileName) : _fileName(fileName)
 	{
-		_fFichier = new std::fstream ;
+		_fFichier = new std::fstream;
 		_fFichier->open(_fileName, std::ios::out | std::ios::trunc /*| std::ios::app*/);
 		*_fFichier << "Hum, serait-ce embarrassant ?" << std::endl;
 		*_fFichier << "- Nous vous recommandons de ne pas descendre de l'arbre avant l'automne" << std::endl;
@@ -20,9 +20,9 @@ namespace file_essais
 
 	//: _fileName ("monBeauFichier.txt") 
 
-	EssaisFichier::~EssaisFichier() 
+	EssaisFichier::~EssaisFichier()
 	{
-		delete _fFichier; 
+		delete _fFichier;
 	}
 
 	EssaisFichier::EssaisFichier(const EssaisFichier & ef)
@@ -46,35 +46,12 @@ namespace file_essais
 		return *this;
 	}
 
-	LireFichierTxt::LireFichierTxt(std::string fileName) 
+	LireFichierTxt::LireFichierTxt(std::string fileName)
 		: _fileName(fileName)
 		, _ifsHandler(nullptr)
-		, _fileSize (-1)
-		, _dataString( "" )
+		, _fileSize(-1)
+		, _dataString("")
 	{
-		/*
-		{
-			std::ifstream ifs("hou.c");
-
-			if (ifs.is_open()) 
-			{
-				std::cout << "Ouvert !" << std::endl;
-				// print file:
-				char c = ifs.get();
-				while (ifs.good()) {
-					std::cout << c;
-					c = ifs.get();
-				}
-				//
-				ifs.close();
-			}
-			else {
-				// show message:
-				std::cout << "Error opening file" << std::endl;
-			}
-		}
-		*/
-
 		_ifsHandler = new std::ifstream;
 		_ifsHandler->open(_fileName, std::ios::in | std::ios::binary);
 		setFileSize();
@@ -93,8 +70,8 @@ namespace file_essais
 		if (this != &lft)
 		{
 			_ifsHandler->close();
-			delete _ifsHandler ;
-			_ifsHandler = lft._ifsHandler ;
+			delete _ifsHandler;
+			_ifsHandler = lft._ifsHandler;
 			_fileName = lft._fileName;
 			_fileSize = lft._fileSize;
 			_dataString = lft._dataString;
@@ -122,7 +99,7 @@ namespace file_essais
 			long currentPosition = _ifsHandler->tellg();
 			_ifsHandler->seekg(0, _ifsHandler->end);
 			_fileSize = _ifsHandler->tellg();
-			_ifsHandler->seekg (currentPosition, _ifsHandler->beg) ;
+			_ifsHandler->seekg(currentPosition, _ifsHandler->beg);
 		}
 		else
 		{
@@ -151,6 +128,90 @@ namespace file_essais
 
 	void LireFichierTxt::printFile(void)
 	{
-		std::cout << _dataString.c_str () ;
+		std::cout << _dataString.c_str();
+	}
+
+	EcrireFichierTxt::EcrireFichierTxt(std::string fileName = "dummyFile.tmp")
+		: _fileName(fileName)
+		, _ofsHandle(nullptr)
+		, _ifsHandle(nullptr)
+		, _data("")
+		, _reversedData("")
+		, _inFileSize(-1)
+	{
+		_ifsHandle = new std::ifstream(_fileName, std::ios::in);
+		_ofsHandle = new std::ofstream("effaceMoi.txt", std::ios::out | std::ios::binary | std::ios::trunc);
+		setInFileSize();
+		readFile();
+		writeFile();
+	}
+
+	EcrireFichierTxt::~EcrireFichierTxt()
+	{
+		_ofsHandle->flush();
+		_ofsHandle->close();
+		delete _ofsHandle;
+		delete _ifsHandle;
+	}
+
+	EcrireFichierTxt::EcrireFichierTxt(const EcrireFichierTxt& eft)
+	{
+		if (this != &eft)
+		{
+			delete _ofsHandle;
+			delete _ifsHandle;
+			_ofsHandle = eft._ofsHandle ;
+			_ifsHandle = eft._ifsHandle;
+			_data = eft._data;
+			_reversedData = eft._reversedData;
+			_inFileSize = eft._inFileSize;
+		}
+	}
+
+	EcrireFichierTxt& EcrireFichierTxt::operator=(const EcrireFichierTxt& eft)
+	{
+		if (this != &eft)
+		{
+			delete _ofsHandle;
+			_ofsHandle = eft._ofsHandle ;
+			delete _ifsHandle;
+			_ifsHandle = eft._ifsHandle;
+			_data = eft._data;
+			_reversedData = eft._reversedData;
+			_inFileSize = eft._inFileSize;
+		}
+		return *this;
+	}
+
+	void EcrireFichierTxt::readFile(void)
+	{
+		char* zDummy = new char [1 + _inFileSize];
+		memset(zDummy, 0, 1 + _inFileSize);
+		_ifsHandle->read(zDummy, _inFileSize);
+		_data = zDummy;
+		std::cout << "_data.length() = " << _data.length() << std::endl;
+		for (int ii = 0; ii < _data.length(); ++ii)
+		{
+			zDummy[ii] = _data.c_str()[-1 - ii + _data.length()];
+		}
+		_reversedData = zDummy;
+		std::cout << "_reversedData.length() = " << _reversedData.length() << std::endl;
+		delete[] zDummy;
+	}
+
+	void EcrireFichierTxt::writeFile(void)
+	{
+		_ofsHandle->write("Hola, amigo\n", 12);
+		std::string zozo = "Hum, je ne sais pas ce que vous voulez.\n";
+		_ofsHandle->write(zozo.c_str(), zozo.length());
+		_ofsHandle->write(_reversedData.c_str(), _reversedData.length());
+	}
+
+	void EcrireFichierTxt::setInFileSize(void)
+	{
+		long currentPosition = _ifsHandle->tellg();
+		_ifsHandle->seekg(0, _ifsHandle->end);
+		_inFileSize = _ifsHandle->tellg();
+		_ifsHandle->seekg(currentPosition, _ifsHandle->beg);
 	}
 }

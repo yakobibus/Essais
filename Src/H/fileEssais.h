@@ -57,6 +57,23 @@ namespace file_essais
 		std::string _reversedData;
 		long _inFileSize ;
 	};
+
+	class Personne
+	{
+	public :
+		Personne(std::string nom = "Smith", std::string prenom = "John", int age = -1);
+		~Personne() = default;
+		Personne(const Personne& p) = default;
+		Personne& operator = (const Personne& p) = default;
+		//
+		void affiche(void);
+		void write(void);
+	private :
+		std::string _nom;
+		std::string _prenom;
+		int _age;
+		const std::string _separateur = ";!:";
+	};
 }
 
 # endif // FILE_ESSAIS_H

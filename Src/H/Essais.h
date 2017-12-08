@@ -39,6 +39,7 @@ namespace essais_tests
 		void testEssaisFichier(void);
 		void testLireFichierTxt(int fileRange, std::string fileName);
 		void testEcrireFichierTxt(std::string fileName);
+		void testFichierPersonne(std::string fileName);
 
 		void afficheArgs(int argPosition, std::string argValue);
 	private :

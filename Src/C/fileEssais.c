@@ -212,4 +212,16 @@ namespace file_essais
 		_inFileSize = _ifsHandle->tellg();
 		_ifsHandle->seekg(currentPosition, _ifsHandle->beg);
 	}
+
+	Personne::Personne(std::string nom, std::string prenom, int age)
+		: _nom(nom)
+		, _prenom(prenom)
+		, _age(age)
+	{
+	}
+	//
+	inline void Personne::affiche(void)
+	{
+		std::cout << _nom.c_str() << _separateur.c_str() << _prenom.c_str() << _separateur.c_str() << _age << "(" << sizeof(Personne) << ")" << std::endl;
+	}
 }

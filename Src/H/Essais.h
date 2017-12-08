@@ -22,4 +22,28 @@ namespace essais_01
 	};
 }
 
+namespace essais_tests
+{
+	class TestEssais
+	{
+	public :
+		TestEssais(int fileRange, std::string fileName);
+		~TestEssais() = default;
+		TestEssais(const TestEssais& te) = default;
+		TestEssais& operator = (const TestEssais& te) = default;
+		//
+		void testEssais01(void);
+		void testMinMax(void);
+		void testTblStatiques(int argc, char** argv);
+		void testSmartPtr(void);
+		void testEssaisFichier(void);
+		void testLireFichierTxt(int fileRange, std::string fileName);
+		void testEcrireFichierTxt(std::string fileName);
+
+		void afficheArgs(int argPosition, std::string argValue);
+	private :
+		std::string _fileName;
+	};
+}
+
 # endif // ESSAIS_H

@@ -147,6 +147,10 @@ namespace essais_tests
 	{
 		file_essais::Personne p1;
 		p1.affiche();
+		file_essais::Personne p2("Eastwood", "Clint", 75);
+		p2.affiche();
+		file_essais::Personne p3("Megagigahypergrandiosassimissimegamillionnissimoussiesquessimes", "Prenonissimosimissimissimesque", 985);
+		p3.affiche();
 	}
 
 	void TestEssais::afficheArgs(int argPosition, std::string argValue)

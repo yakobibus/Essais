@@ -220,7 +220,7 @@ namespace file_essais
 	{
 	}
 	//
-	inline void Personne::affiche(void)
+	void Personne::affiche(void)
 	{
 		std::cout << _nom.c_str() << _separateur.c_str() << _prenom.c_str() << _separateur.c_str() << _age << "(" << sizeof(Personne) << ")" << std::endl;
 	}

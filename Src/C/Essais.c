@@ -8,6 +8,7 @@
 # include "Essais.h"
 # include "Smart_Ptr.h"
 # include "fileEssais.h"
+# include "Exple_1.h"
 
 // shared_ptr
 
@@ -89,6 +90,11 @@ namespace essais_tests
 		//testSmartPtr();
 	}
 
+	TestEssais::TestEssais(int argc, char** argv)
+	{
+		testExple_1(argc, argv);
+	}
+
 	void TestEssais::testEssais01(void)
 	{
 		essais_01::Cessai_01<int, 5> ce01;
@@ -153,6 +159,13 @@ namespace essais_tests
 		p3.affiche();
 	}
 
+	void TestEssais::testExple_1(int argc, char ** argv)
+	{
+		std::unique_ptr<exple_1::Main> m (new exple_1::Main (argc, argv)) ;
+		m->showArgs();
+		m->testUniquePtr(51);
+	}
+
 	void TestEssais::afficheArgs(int argPosition, std::string argValue)
 	{
 		std::string argString = std::to_string(argPosition) + ". " + argValue;
@@ -166,6 +179,9 @@ namespace essais_tests
 
 int main(int argc, char** argv)
 {
+	essais_tests::TestEssais(argc, argv);
+
+	/*
 	if (argc > 0)
 	{
 		for (int ii = 1; ii < argc; ++ii)
@@ -173,6 +189,7 @@ int main(int argc, char** argv)
 			essais_tests::TestEssais te(ii, argv[ii]);
 		}
 	}
+	*/
 
 	return 0;
 }

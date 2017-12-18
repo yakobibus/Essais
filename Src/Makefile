@@ -20,9 +20,9 @@ PRG_DIR = $(PRG_HOME)/Src
 SRC_DIR = $(PRG_DIR)/C
 HDR_DIR = $(PRG_DIR)/H
 
-HDR_LST = $(HDR_DIR)/Essais.h $(HDR_DIR)/Essai_1.h $(HDR_DIR)/Smart_Ptr.h $(HDR_DIR)/fileEssais.h
-SRC_LST = $(SRC_DIR)/Essais.c $(SRC_DIR)/Essai_1.c $(SRC_DIR)/Smart_Ptr.c $(SRC_DIR)/fileEssais.c
-OBJ_LST = $(OBJ_DIR)/Essais.o $(OBJ_DIR)/Essai_1.o $(OBJ_DIR)/Smart_Ptr.o $(OBJ_DIR)/fileEssais.o
+HDR_LST = $(HDR_DIR)/Essais.h $(HDR_DIR)/Essai_1.h $(HDR_DIR)/Smart_Ptr.h $(HDR_DIR)/fileEssais.h $(HDR_DIR)/Exple_1.h
+SRC_LST = $(SRC_DIR)/Essais.c $(SRC_DIR)/Essai_1.c $(SRC_DIR)/Smart_Ptr.c $(SRC_DIR)/fileEssais.c $(SRC_DIR)/Exple_1.c
+OBJ_LST = $(OBJ_DIR)/Essais.o $(OBJ_DIR)/Essai_1.o $(OBJ_DIR)/Smart_Ptr.o $(OBJ_DIR)/fileEssais.o $(OBJ_DIR)/Exple_1.o
 
 
 $(EXE_DIR)/Essais.exe : $(OBJ_LST)
@@ -39,6 +39,9 @@ $(OBJ_DIR)/Smart_Ptr.o : $(SRC_DIR)/Smart_Ptr.c $(HDR_DIR)/Smart_Ptr.h
 
 $(OBJ_DIR)/fileEssais.o : $(SRC_DIR)/fileEssais.c $(HDR_DIR)/fileEssais.h
 	$(CC) $(ARGS) -c -o $(OBJ_DIR)/fileEssais.o $(SRC_DIR)/fileEssais.c -I $(HDR_DIR) -I $(CMN_HDR)
+
+$(OBJ_DIR)/Exple_1.o : $(SRC_DIR)/Exple_1.c $(HDR_DIR)/Exple_1.h
+	$(CC) $(ARGS) -c -o $(OBJ_DIR)/Exple_1.o $(SRC_DIR)/Exple_1.c -I $(HDR_DIR) -I $(CMN_HDR)
 
 
 clean :

@@ -28,6 +28,7 @@ namespace essais_tests
 	{
 	public :
 		TestEssais(int fileRange, std::string fileName);
+		TestEssais(int argc, char** argv);
 		~TestEssais() = default;
 		TestEssais(const TestEssais& te) = default;
 		TestEssais& operator = (const TestEssais& te) = default;
@@ -40,6 +41,8 @@ namespace essais_tests
 		void testLireFichierTxt(int fileRange, std::string fileName);
 		void testEcrireFichierTxt(std::string fileName);
 		void testFichierPersonne(std::string fileName);
+
+		void testExple_1(int argc, char** argv);
 
 		void afficheArgs(int argPosition, std::string argValue);
 	private :

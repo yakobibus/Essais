@@ -81,6 +81,7 @@ namespace essais_tests
 	{
 		testFichierPersonne(fileName);
 
+		/*
 		// testEcrireFichierTxt (fileName);
 
 		// testLireFichierTxt (fileRange, _fileName);
@@ -88,6 +89,7 @@ namespace essais_tests
 		// testEssaisFichier();
 
 		//testSmartPtr();
+		*/
 	}
 
 	TestEssais::TestEssais(int argc, char** argv)

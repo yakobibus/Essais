@@ -79,9 +79,11 @@ namespace essais_tests
 {
 	TestEssais::TestEssais(int fileRange = -1, std::string fileName = "dummy.txt") : _fileName (fileName)
 	{
-		testFichierPersonne(fileName);
+		testMusic();
 
 		/*
+		// testFichierPersonne(fileName);
+
 		// testEcrireFichierTxt (fileName);
 
 		// testLireFichierTxt (fileRange, _fileName);
@@ -95,6 +97,10 @@ namespace essais_tests
 	TestEssais::TestEssais(int argc, char** argv)
 	{
 		testExple_1(argc, argv);
+	}
+
+	void TestEssais::testMusic (void)
+	{
 	}
 
 	void TestEssais::testEssais01(void)

@@ -33,6 +33,7 @@ namespace essais_tests
 		TestEssais(const TestEssais& te) = default;
 		TestEssais& operator = (const TestEssais& te) = default;
 		//
+		void testMusic (void);
 		void testEssais01(void);
 		void testMinMax(void);
 		void testTblStatiques(int argc, char** argv);

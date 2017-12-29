@@ -130,13 +130,15 @@ namespace exple_1
 
 	void Main::testUniquePtr(int value)
 	{
+		/*
 		// Create a unique_ptr object through raw pointer
-		std::unique_ptr<exple_1::Task> taskPtr(new exple_1::Task(_argc));
+		// std::unique_ptr<exple_1::Task> taskPtr(new exple_1::Task(_argc));
 
 		//Access the element through unique_ptr
-		int id = taskPtr->get_mId();
+		//int id = taskPtr->get_mId();
 
-		std::cout << id << std::endl;
+		//std::cout << id << std::endl;
+		*/
 
 		for (int i = 1; i < _argc; ++i)
 		{

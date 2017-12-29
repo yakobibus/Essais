@@ -4,11 +4,13 @@
 # include <string>
 //# include <cstdio>
 # include <cstring>
+# include <memory>
 
 # include "Essais.h"
 # include "Smart_Ptr.h"
 # include "fileEssais.h"
 # include "Exple_1.h"
+# include "Music.h"
 
 // shared_ptr
 
@@ -79,8 +81,6 @@ namespace essais_tests
 {
 	TestEssais::TestEssais(int fileRange = -1, std::string fileName = "dummy.txt") : _fileName (fileName)
 	{
-		testMusic();
-
 		/*
 		// testFichierPersonne(fileName);
 
@@ -96,11 +96,53 @@ namespace essais_tests
 
 	TestEssais::TestEssais(int argc, char** argv)
 	{
-		testExple_1(argc, argv);
+		testMusic();
+		
+		std::cout << "Alors ?" << std::endl;
+		// testExple_1(argc, argv);
 	}
 
-	void TestEssais::testMusic (void)
+	void TestEssais::testMusic(void)
 	{
+		try
+		{
+			std::unique_ptr<just_music::Song> song2(new just_music::Song("Bruno Mars", "Nothing on You"));
+			// int z = 0;
+			// int i = 1 / z;
+			throw new int(10);
+		}
+		catch (const int * e)
+		{
+			std::cerr << "Erreur numéro " << *e << std::endl ;
+		}
+		catch (std::exception e)
+		{
+			std::cerr << "Au premier secours [" << e.what() << "] ..." << std::endl;
+		}
+		catch (...) // traite toutes les autres exceptions 
+		{
+			std::cerr << "Erreur inconnue.\n";
+		}
+
+		try
+		{
+			just_music::Song mySong("Manuel Caruzo", "Viva la vida !");
+			int z = 0;
+			int i = 1 / z;
+			// throw new int(10);
+		}
+		catch (const int * e)
+		{
+			std::cerr << "Erreur en second numéro " << *e << std::endl ;
+		}
+		catch (std::exception e)
+		{
+			std::cerr << "Au secours [" << e.what() << "] ..." << std::endl;
+		}
+		catch (...) // traite toutes les autres exceptions 
+		{
+			std::cerr << "Erreur inconnue.\n";
+		}
 	}
 
 	void TestEssais::testEssais01(void)

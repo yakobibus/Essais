@@ -36,3 +36,7 @@ organisation(serie_2, 1)
 print("Tri sur Prenom ", serie_2)
 organisation(serie_2, 2)
 print("Tri sur le Nom : ", serie_2)
+
+# ---
+toto = [(1, "Fabian", ""), (22, "Leia", ""), (11, "Anais", ""), (14, "Zambo", ""), (18, "Casius", ""), (23, "Kan", ""), (7, "Melvin", "")]
+solo = [(12, "Jean", "Richier", [11, [4, "Avril"], 2001]), (9, "Greg", "Aldebert", [28, [11, "Novembre"], 1997])]

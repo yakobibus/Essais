@@ -1,15 +1,45 @@
 #! /usr/bin/python3.6
+# -*- coding: latin-1 -*-
 
-class MyEmptyClass(): ### (object):
+class MyEmptyClass(object):
     """
       A minimal class definition with an initialize function as bonus
     """
     def __init__(self):
-        print("Je suis une classe minimale")
+        """
+          initialize MyEmptyClass
+        """
+        print("Je suis, {}, une classe minimale".format(self.__class__.__name__))
     
-    pass
+    def dummy(self):
+        """
+          non sense obviously
+        """
+        pass
+    
+    # pass
+# ----
+def print_values(**kwargs):
+    for key, value in kwargs.items():
+        print("The value of {} is {}".format(key, value))
+def print_values_2(**kwargs):
+    for key in kwargs:
+        print("The value of {} -> {}".format(key, kwargs[key]))
 
-def epelle(mot, sensPositif = True):
+print_values(my_name="Sammy", your_name="Casey")
+print_values_2(my_name="Sammy", your_name="Casey")
+
+# ----
+
+def func_with_dico(**dico):
+    """
+       object  : Howto use a dictionnary parameter
+       example : func_with_dico(enseigne = "LBM", rayon = "epicerie", marchandise = "Saumon fumé")
+    """
+    for d in dico:
+        print("key:{} := value:{}".format(d, dico[d]))
+
+def epelle(mot, sens_positif=True):
     """
         Objet   : epelle le mot reCu en parametre
         Params  : le mot A epeller
@@ -17,7 +47,7 @@ def epelle(mot, sensPositif = True):
         Return  : none
         Exemple : epelle("Je suis parvenu au firmament de la connaissance du langage serpentin ...")
     """
-    if sensPositif :
+    if sens_positif :
         for l in enumerate(mot):
             i, c = l
             print("Position[{:>2}] : {}".format(i, c))

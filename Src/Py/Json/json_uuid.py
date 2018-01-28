@@ -1,7 +1,7 @@
 #! /usr/bin/python3.6
 # -*- coding: latin-1 -*-
 
-# import json
+import json
 import uuid
 
 def ligne(texte = '', taille = 10) :
@@ -92,6 +92,30 @@ def autre_exple () :
         print(' ', uuid.uuid3(namespace_uuid, name))
         print()
 
+def uuid_and_json () :
+    """
+      a use of json and uuid
+    """
+    # import uuid
+    # import json
+
+    mydict = { "myuuid form 1" : str(uuid.uuid1()) }
+    json.dumps(mydict) 
+    print(mydict)
+    print()
+
+    mydict = { "myuuid form 4" : str(uuid.uuid4()) }
+    json.dumps(mydict) 
+    print(mydict)
+
+    yuyu = uuid.uuid4()
+    mydict = {'anOther uuid 4th form' : str(yuyu)}
+    json.dumps(mydict)
+    print(mydict)
+    print('  now, the fields : ', yuyu.fields)
+    uuid_exple_2(yuyu)
+    
+
 def main () :
     """
     Objet : fonction principale
@@ -99,20 +123,22 @@ def main () :
 
     # uuid_exple_1 ()
 
-    u = uuid.uuid1()
-    uuid_exple_2 (u)
+    # u = uuid.uuid1()
+    # uuid_exple_2 (u)
 
-    ligne ('dir(uuid)')
-    print(dir(uuid))
+    # ligne ('dir(uuid)')
+    # print(dir(uuid))
 
-    ligne ('autre_exple()')
-    autre_exple ()
+    # ligne ('autre_exple()')
+    # autre_exple ()
 
     ligne('uuid4, the random uuid')
     u = uuid.uuid4()
     uuid_exple_2 (u)
+    print ('  and the fields : ', u.fields)
 
-    # u = uuid.uuid5()
-    # uuid_exple_2 (u)
+    ligne('uuid_and_json')
+    uuid_and_json()
 
+# ------
 main ()

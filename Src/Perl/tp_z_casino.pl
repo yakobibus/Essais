@@ -106,6 +106,24 @@ my sub getArgs
     #    FinSi
     # FinFaire
 {
+    my %optionsAttendues = (
+        'version'  => 5
+      , 'cases' => 6 
+      , 'help'  => 5
+      , 'specifs' => 5
+    ) ; # avec arguments | obligatoire [0:aucun arg, 1: 1arg, 5:option accessoire, 7:option obligatoire]
+    while (my ($opt, $val) = each %optionsAttendues ) {
+        print "++++ $opt " ;
+        say ' : option accessoire sans argument' if ($val == 0 || $val == 5) ;
+        say ' : option accessoire avec un argument' if ($val == 6) ;
+        say ' : option obligatoire sans argument' if ($val == 7) ;
+        say ' : option obligatoire avec un argument' if ($val == 8) ;
+   }
+    my $haha = 'version';
+    say "!!! $haha existe et vaut $optionsAttendues{$haha}" if exists $optionsAttendues{$haha};
+    # voir if exists et if defined donc if exists && defined :: if exists $optionsAttendues{version}
+    say "<<$optionsAttendues{cases}>>" ;
+    # ----
     my @argv = @ARGV ;
     my $argc = 0 + @argv ;
     my $FlagFinDesOptions = 0 ; # Faux
@@ -118,8 +136,10 @@ my sub getArgs
         print "Prm ". ++$position ."/$argc => [$valeur] :: " ;
         if (is_option($valeur)) {
             # Depiler l'option
-            $valeur =~ s/--// ;
-            push @lesOptions , $valeur =~ s/^-*// ;
+            print "valeur=<$valeur>..." ;
+            $valeur =~ s/^-{1,2}// ;
+            say "...valeur=<$valeur>" ;
+            push @lesOptions , $valeur ; # =~ s/^-{1,2}// ;
             my $nbOpt = @lesOptions ;
             print ".......Nb options = $nbOpt ....(@lesOptions)..<hum>..." ;
 

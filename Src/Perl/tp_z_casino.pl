@@ -106,28 +106,73 @@ my sub getArgs
     #    FinSi
     # FinFaire
 {
-    my %optionsAttendues = (
-        'version'  => 5
-      , 'cases' => 6 
-      , 'help'  => 5
+    my sub nw_depiler_option {
+        # reçoit les references de
+        # 1. l'option courante
+        # 2. la liste des options sans les tirets
+        my $ref_optCourante = shift ;
+        my $ref_optList = shift ;
+        $$ref_optCourante =~ s/^-{1,2}// ;
+        push @$ref_optList, ${$ref_optCourante} ;
+    }
+
+    my sub depiler_options {
+        my $optCourante = shift @_ ; # le premier prm
+        my @optLst = @_ ;
+        $optCourante =~ s/^-{1,2}// ;
+        push @optLst , $optCourante ;
+
+        return $optCourante, @optLst ;
+    }
+
+    my sub exists_option {
+        # reçoit
+        # 1. la reference de l'option recherchée
+        # 2. la reference du hachage des options
+        # Retourne 0 (False) ou >0 (True)
+        # 
+        my $optRef = shift ;
+        my $optAttenduesRef = shift ; ## %{ $_ } ;
+        my @cles = keys %{ $optAttenduesRef } ;
+        # say "Gotcha ........$$optRef...(keys %{ $optAttenduesRef }).@cles..............";
+        return exists $$optAttenduesRef{$$optRef}  && defined $$optAttenduesRef{$$optRef} ;
+    }
+
+    my $ref_optAttendues = { # Anonymous hash reference
+      (
+        'version' => 5
+      , 'cases'   => 6 
+      , 'help'    => 5
       , 'specifs' => 5
-    ) ; # avec arguments | obligatoire [0:aucun arg, 1: 1arg, 5:option accessoire, 7:option obligatoire]
-    while (my ($opt, $val) = each %optionsAttendues ) {
+      )
+    };  # avec arguments | obligatoire [0:aucun arg, 1: 1arg, 5:option accessoire, 7:option obligatoire]
+
+    #my %optionsAttendues = (
+    #    'version'  => 5
+    #  , 'cases' => 6 
+    #  , 'help'  => 5
+    #  , 'specifs' => 5
+    #) ; # avec arguments | obligatoire [0:aucun arg, 1: 1arg, 5:option accessoire, 7:option obligatoire]
+    #say "<<<%optionsAttendues>>>" ;
+
+    while (my ($opt, $val) = each %{ $ref_optAttendues } ) {
         print "++++ $opt " ;
         say ' : option accessoire sans argument' if ($val == 0 || $val == 5) ;
         say ' : option accessoire avec un argument' if ($val == 6) ;
         say ' : option obligatoire sans argument' if ($val == 7) ;
         say ' : option obligatoire avec un argument' if ($val == 8) ;
-   }
+    }
     my $haha = 'version';
-    say "!!! $haha existe et vaut $optionsAttendues{$haha}" if exists $optionsAttendues{$haha};
+    #say "!!! $haha existe et vaut $optionsAttendues{$haha}" if exists $optionsAttendues{$haha};
     # voir if exists et if defined donc if exists && defined :: if exists $optionsAttendues{version}
-    say "<<$optionsAttendues{cases}>>" ;
+    #say "<<$optionsAttendues{cases}>>" ;
+
     # ----
     my @argv = @ARGV ;
     my $argc = 0 + @argv ;
     my $FlagFinDesOptions = 0 ; # Faux
-    my @lesOptions ;
+    my @lesOptions ; 
+    # my $ref_lesOptions = \@lesOptions ;
     my @lesArgOptions ;
     my @lesArguments ;
     # --
@@ -136,12 +181,13 @@ my sub getArgs
         print "Prm ". ++$position ."/$argc => [$valeur] :: " ;
         if (is_option($valeur)) {
             # Depiler l'option
-            print "valeur=<$valeur>..." ;
-            $valeur =~ s/^-{1,2}// ;
-            say "...valeur=<$valeur>" ;
-            push @lesOptions , $valeur ; # =~ s/^-{1,2}// ;
-            my $nbOpt = @lesOptions ;
-            print ".......Nb options = $nbOpt ....(@lesOptions)..<hum>..." ;
+
+            # print "valeur=<$valeur>..." ;
+            # $valeur =~ s/^-{1,2}// ;
+            # say "...valeur=<$valeur>" ;
+            # push @lesOptions , $valeur ; # =~ s/^-{1,2}// ;
+            # my $nbOpt = @lesOptions ;
+            # print ".......Nb options = $nbOpt ....(@lesOptions)..<hum>..." ;
 
             if ( $valeur =~ s/^--$// )
             {
@@ -156,7 +202,46 @@ my sub getArgs
             }
             else
             {
-                say "C'est une option " ;
+                my $lastOpt ; #### ici
+                my $ref_lastOpt = \$valeur ;
+                ($lastOpt, @lesOptions) = depiler_options($valeur, @lesOptions) ;
+                #nw_depiler_option ($$ref_lastOpt, @$ref_lesOptions) ;
+                print " the last : <<$lastOpt>>" ;
+                #my $ref_lastOpt = \$lastOpt ;
+                # my $ref_optAttendues = \%optionsAttendues ;
+                if ( exists_option($ref_lastOpt, $ref_optAttendues) )
+                {
+                    while (my ($opt, $val) = each %{ $ref_optAttendues } ) {
+                        if ($lastOpt eq $opt) ###  && ( $val == 6 || $val == 8 )
+                        {
+                            say "!!!!!!!!!!!Argssss!!!!!!!! On MATCH entre $lastOpt et $opt !!! " ;
+                            next if 1 == 1;
+                            #last if 1 ; ## on cherche un break du while :
+                        
+                            # Recuperer l'argument de l'option
+                            #my $optArg = shift @ARGV ;
+                            #unshift @ARGV;
+                            #say "Hum !! embarrassant " if $optArg =~ /toto/ ;
+                            #my $zip = $optArg =~ /^-{1, 2}/ ;
+                            #if $zip 
+                            #{
+                                #say "EXCEPTION : arg <$optArg> incohérent avec l'option $lastOpt" ;
+                            #}
+                        }
+                        print "++++ $opt " ;
+                        say ' : option accessoire sans argument' if ($val == 0 || $val == 5) ;
+                        say ' : option accessoire avec un argument' if ($val == 6) ;
+                        say ' : option obligatoire sans argument' if ($val == 7) ;
+                        say ' : option obligatoire avec un argument' if ($val == 8) ;
+                    }
+                    
+                }
+                else 
+                {
+                    my $pitre = pop @lesOptions ;
+                    say "EXCEPTION : option inattendue : $pitre" ;
+                }
+                say "C'est une option <@lesOptions> " ;
             }
         }
         else {

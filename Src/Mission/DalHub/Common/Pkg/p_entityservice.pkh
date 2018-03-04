@@ -1,0 +1,75 @@
+/*
+** p_entityservice.pkh
+**/
+
+
+create or replace
+PACKAGE p_entityservice IS
+  /** package for OBJECT Manipulation **/
+ 
+  setdbms_output boolean :=false;
+  DATETIMEFORMAT CONSTANT VARCHAR2(30) :='YYYY-MM-DD"T"HH24:MI:SS"Z"';
+  TIMESTAMPFORMAT CONSTANT VARCHAR2(40) :='YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"';
+ 
+ 
+  
+   TYPE t_json IS record
+   (
+      jsonValue clob,
+      jsonHash varchar2(64)
+   );
+  
+  
+    TYPE t_bind IS record
+   (
+      attributename  varchar2(255),
+      kind integer  default 1,
+      varchar2_value varchar2(4000)  default null,
+      number_value number default 0,
+      date_value date default null,
+      timestamp_value timestamp  default null,
+      raw_value raw(255)  default null,
+      ids_value IDTABLE_T default null
+    
+   );
+  
+     -- t_kind type + timestamp + date
+    c_null     constant integer := 1;
+    c_true     constant integer := 2;
+    c_false    constant integer := 3;
+    c_number   constant integer := 4;
+    c_varchar2 constant integer := 5;
+    c_object   constant integer := 6;
+    c_array       constant integer := 7;
+    c_ids         constant integer := 11;
+    c_date         constant integer := 12;
+    c_timestamp    constant integer := 13;
+    c_raw        constant integer := 14;
+   
+    type ttable_bind is table of t_bind;
+    function getAllCursor(pobjectnameorcode in varchar2  , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR  ;
+
+   -- get a cursor to a SQL Select over one object search by UUID
+   -- using scope feature : see p_objecthandler constant for scope understanding
+   function  getCursor(pobjectnameorcode in varchar2  ,puuid in raw , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR ;
+  
+   -- get a cursor to a SQL Select over one object search by ID
+   function  getByIdCursor ( pobjectnameorcode in varchar2 ,id in varchar2, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR;
+ 
+  --get JSON representation of an object
+   function  getJson (pobjectnameorcode in varchar2 , puuid in raw,  puseCache integer default 0,pscope varchar2 default P_OBJECTHANDLER.SCOPE_ALL) return clob  ;
+   procedure getJsonFromCache ( pobjectnameorcode in varchar2 ,puuid in raw,plastmodified in out  TIMESTAMP, pjsonobject in out NOCOPY clob  ,pjsonHash out varchar2 ) ;
+  
+   function  storeObject(jsonObject in out nocopy clob,pobjectnameorcode in varchar2  default null,psaveHistory in integer default 1) return clob;
+   --save in history table an object json snaphshot ( raise an exception if nothing has change, exept if bForceSave >0)
+   procedure saveHistory (pobjectnameorcode in varchar2 , puuid in raw ,bForceSave in integer :=0 );
+ 
+   function  mergeExtradata( psource1 in  kvtable_t, psource2 in kvtable_t) return kvtable_t;
+   function  exist (pobjectname in varchar2 , puuid in raw ) return timestamp ;
+   function  existById (pobjectname in varchar2 , pid in varchar2 ) return raw ;
+  
+   function  dolock (pobjectname in varchar2 , puuid in raw, plastmodified  in timestamp default null) return timestamp ;
+
+END p_entityservice;
+/
+show errors

@@ -1,0 +1,43 @@
+/*
+**/
+
+
+create or replace
+PACKAGE p_entityhandler IS
+  /**
+
+  Package  de manipulation des meta données d'une entité et des liens
+
+  10/2017
+
+  **/
+     -- scope for search : default
+     SCOPE_ALL constant varchar2(100) :=p_objecthandler.SCOPE_ALL;
+
+        -- scope for search : root
+     SCOPE_ROOT constant varchar2(100) :=p_objecthandler.SCOPE_ROOT;
+
+      -- scope for search meta and extra info
+     SCOPE_EXTRADATA constant varchar2(100) :=p_objecthandler.SCOPE_EXTRADATA;
+
+      -- scope for search meta and extra info
+     SCOPE_HISTORY constant varchar2(100) :=p_objecthandler.SCOPE_HISTORY;
+
+     -- scope for search : specific link
+     SCOPE_LINK constant varchar2(100) :=p_objecthandler.SCOPE_LINK;
+
+
+      -- all SQL requirements
+
+     function  getSqlBaseSelect            ( pobjectName in varchar2  , pScope in varchar2 default SCOPE_ALL ) return varchar2;
+     function  getSqlBaseSelectExist       ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseSelectMaxPrevious ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseInsert            ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseUpdate            ( pobjectName in varchar2 ) return varchar2 ;
+     function  getSqlBaseUpdatePrevious    ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseLink              ( pmaxOffset integer default 30, plevel integer default 0)  return varchar2;
+
+
+END p_entityhandler;
+/
+show errors

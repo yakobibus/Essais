@@ -1,0 +1,31 @@
+/*
+**/
+
+
+create or replace
+package                  p_securityservice is
+
+  -- Current USER  ( unique iuser info)
+  DATAHUB_USER constant varchar2(20)    :='USER';
+
+
+  -- current application ID
+  DATAHUB_APPLICATION constant varchar2(20) :='APPLICATION';
+
+  -- fonction usage for current request  / activity
+  DATAHUB_FONCTION constant varchar2(20) :='FUNCTION';
+
+  -- security level / group / compatment
+  DATAHUB_SECURITY_LEVEL constant varchar2(20) :='SECURITY_LEVEL';
+  DATAHUB_SECURITY_COMPARTMENT constant varchar2(20) :='SECURITY_COMPARTMENT';
+  DATAHUB_SECURITY_GROUP constant varchar2(20) :='SECURITY_GROUP';
+
+  procedure setCurrentContext(pcontext in varchar2, papplication IN VARCHAR2, pfonction IN VARCHAR2, puser IN VARCHAR2, plevel IN varchar2, pcompartment in varchar2,pgroup IN VARCHAR2);
+  procedure setCurrentContextUndefined(pcontext in varchar2) ;
+
+  procedure clearCurrentContext(pcontext in varchar2);
+  function  getCurrentCompartment(pcontext in varchar2) return varchar2 ;
+  function  hasCompartment( pcontext in varchar2,pcompartment in varchar2 ) return integer ;
+end p_securityservice;
+/
+show errors

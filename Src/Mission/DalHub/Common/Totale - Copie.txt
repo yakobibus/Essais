@@ -1,0 +1,2684 @@
+
+
+create or replace
+TYPE                  id_t AS OBJECT (
+  scheme varchar2(255),
+  issuer varchar2(255),
+  id varchar2(255)
+)
+;
+
+create or replace
+TYPE                  idtable_t is TABLE OF own_07755_common.id_t
+;
+
+create or replace
+TYPE                  kv_t  AS OBJECT (
+
+  key varchar2(255),
+  value varchar2(4000),
+  type varchar2(255),
+  member function getDateTimeValue return date,
+  member function getDateValue return date,
+  member function getRealValue return real,
+  member function getStringValue return varchar2,
+  member procedure setDateTimeValue( pdate date),
+  member procedure setDateValue( pdate date),
+  member procedure setRealValue( preal real),
+  member function isMember( pvalue  varchar2 ) return boolean ,
+  constructor function kv_t(pkey varchar2, pvalue varchar2)
+        RETURN SELF AS RESULT
+        DETERMINISTIC ,
+  constructor function kv_t(pkey varchar2, pvalue date, pisTime boolean)
+        RETURN SELF AS RESULT
+        DETERMINISTIC ,
+ constructor function kv_t(pkey varchar2, pvalue real)
+        RETURN SELF AS RESULT
+        DETERMINISTIC
+)
+;
+
+create or replace
+TYPE body                  kv_t   is
+
+ member function getStringValue return varchar2 is
+  begin
+    return self.value;
+  end;
+
+
+  member function getDateValue return date is
+  begin
+    if (self.type='date') then
+       return to_date(self.value,'DD/MM/YYYY');
+    end if;
+    return null;
+  end;
+
+  member function getDateTimeValue return date is
+  begin
+    if (self.type='datetime') then
+       return to_date(self.value,'DD/MM/YYYY HH24:MI:SS');
+    end if;
+    return null;
+  end;
+
+  member function getRealValue return real is
+  begin
+  if (self.type='real') then
+     return TO_NUMBER(self.value);
+  end if;
+  return null;
+  end;
+
+  member procedure setDateValue( pdate date) is
+  begin
+    self.value:=to_char(pDate,'DD/MM/YYYY');
+    self.type:='date';
+  end;
+
+  member procedure setDateTimeValue( pdate date) is
+  begin
+    self.value:=to_char(pDate,'DD/MM/YYYY HH24:MI:SS');
+    self.type:='date';
+  end;
+
+  member procedure setRealValue( preal real) is
+  begin
+    self.value:=to_char(preal);
+    self.type:='real';
+  end;
+
+  member function isMember( pvalue  varchar2 ) return boolean is
+  begin
+    if (pvalue is not null and self.value is not null and self.type='string') then
+         return regexp_substr (self.value, pvalue||'[$,]' ,1,1) is not null;
+    end if;
+    return false;
+
+  end;
+
+  constructor function kv_t(pkey varchar2, pvalue varchar2)  RETURN SELF AS RESULT   DETERMINISTIC IS
+  begin
+    self.key:=pkey;
+    self.value:=pvalue;
+    self.type:='string';
+    return ;
+  end;
+  constructor function kv_t(pkey varchar2, pvalue date, pisTime boolean)   RETURN SELF AS RESULT   DETERMINISTIC IS
+  begin
+    self.key:=pkey;
+    self.value:=pvalue;
+    if (pisTime) then
+        self.setDateTimeValue(pvalue);
+    else
+        self.setDateValue(pvalue);
+    end if;
+     return ;
+  end;
+ constructor function kv_t(pkey varchar2, pvalue real)  RETURN SELF AS RESULT   DETERMINISTIC IS
+  begin
+    self.key:=pkey;
+    self.setRealValue(pvalue);
+     return ;
+  end;
+
+end;
+
+create or replace
+TYPE                  kvTable_t is TABLE OF own_07755_common.kv_t
+;
+
+create or replace
+TYPE                  link_t AS OBJECT (
+      linked_uuid RAW(16) ,
+      linked_objecttype varchar(3),
+      linked_role varchar(64)
+)
+
+create or replace
+TYPE                  linkArray_t is VARRAY(15) OF own_07755_common.link_t
+
+create or replace
+TYPE                  linkTable_t is TABLE OF own_07755_common.link_t
+
+---------
+
+create or replace
+PACKAGE                  p_entityhandler IS
+  /**
+
+  Package  de manipulation des meta données d'une entité et des liens
+
+  10/2017
+
+  **/
+     -- scope for search : default
+     SCOPE_ALL constant varchar2(100) :=p_objecthandler.SCOPE_ALL;
+
+        -- scope for search : root
+     SCOPE_ROOT constant varchar2(100) :=p_objecthandler.SCOPE_ROOT;
+
+      -- scope for search meta and extra info
+     SCOPE_EXTRADATA constant varchar2(100) :=p_objecthandler.SCOPE_EXTRADATA;
+
+      -- scope for search meta and extra info
+     SCOPE_HISTORY constant varchar2(100) :=p_objecthandler.SCOPE_HISTORY;
+
+     -- scope for search : specific link
+     SCOPE_LINK constant varchar2(100) :=p_objecthandler.SCOPE_LINK;
+
+
+      -- all SQL requirements
+
+     function  getSqlBaseSelect            ( pobjectName in varchar2  , pScope in varchar2 default SCOPE_ALL ) return varchar2;
+     function  getSqlBaseSelectExist       ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseSelectMaxPrevious ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseInsert            ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseUpdate            ( pobjectName in varchar2 ) return varchar2 ;
+     function  getSqlBaseUpdatePrevious    ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseLink              ( pmaxOffset integer default 30, plevel integer default 0)  return varchar2;
+
+
+END p_entityhandler;
+
+create or replace
+PACKAGE                  p_entityhandler IS
+  /**
+
+  Package  de manipulation des meta données d'une entité et des liens
+
+  10/2017
+
+  **/
+     -- scope for search : default
+     SCOPE_ALL constant varchar2(100) :=p_objecthandler.SCOPE_ALL;
+
+        -- scope for search : root
+     SCOPE_ROOT constant varchar2(100) :=p_objecthandler.SCOPE_ROOT;
+
+      -- scope for search meta and extra info
+     SCOPE_EXTRADATA constant varchar2(100) :=p_objecthandler.SCOPE_EXTRADATA;
+
+      -- scope for search meta and extra info
+     SCOPE_HISTORY constant varchar2(100) :=p_objecthandler.SCOPE_HISTORY;
+
+     -- scope for search : specific link
+     SCOPE_LINK constant varchar2(100) :=p_objecthandler.SCOPE_LINK;
+
+
+      -- all SQL requirements
+
+     function  getSqlBaseSelect            ( pobjectName in varchar2  , pScope in varchar2 default SCOPE_ALL ) return varchar2;
+     function  getSqlBaseSelectExist       ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseSelectMaxPrevious ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseInsert            ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseUpdate            ( pobjectName in varchar2 ) return varchar2 ;
+     function  getSqlBaseUpdatePrevious    ( pobjectName in varchar2 ) return varchar2;
+     function  getSqlBaseLink              ( pmaxOffset integer default 30, plevel integer default 0)  return varchar2;
+
+
+END p_entityhandler;
+
+create or replace
+PACKAGE BODY                                   p_entityhandler  IS
+
+
+  /**
+  Return SQL block command for a link
+  pmaxOffset : max number of record to get , use 0 for all
+
+  **/
+  function getSqlBaseLink(pmaxOffset integer default 30, plevel integer default 0)  return varchar2 is
+
+     lcommand  varchar2(32000);
+
+  BEGIN
+
+      lcommand := ' SELECT link.* from v_linker link where link.source_uuid=c'||plevel||'.uuid ';
+
+      -- block maximum number
+      if (pmaxOffset>0) then
+         lcommand :=lcommand||' and rownum<='|| pmaxOffset ;
+      end if;
+      return lcommand;
+  END;
+
+
+  /**
+    get a sql base request according scope
+  */
+
+   function  priv_getSqlBaseSelect    (  pobjectName in varchar2  , pScope in varchar2 default SCOPE_ALL, plevel in integer default 0, pObjectParent  in out nocopy p_objecthandler.t_object) return varchar2   is
+
+    lcommand  varchar2(32000);
+    lcommandChild varchar2(32000);
+
+    lattribute   p_objecthandler.t_attribute;
+    pobject      p_objecthandler.t_object;
+    lchildobject p_objecthandler.t_object;
+    lchildobjectTable p_objecthandler.t_objecttable;
+    i integer;
+    j integer;
+    idx integer;
+    lobjectRoot p_objecthandler.t_object;
+    limitToActive boolean;
+    lidxObject integer;
+    suffixEntity varchar2(255);
+  BEGIN
+
+    -- get object
+     lidxObject := p_objecthandler.getIdxObject(p_objecthandler.TYPE_ENTITY,pObjectName);
+
+    if ( not p_objecthandler.listAllObjectTable(lidxObject).sqlBaseSelect.EXISTS(pScope)) then
+      dbms_output.put_line('Creating select command for Entity '||pobjectName);
+
+      pobject:=p_objecthandler.listAllObjectTable(lidxObject);
+      suffixEntity:=substr(pobject.info.name,instr(pobject.info.name,'_',-1)+1);
+      -- find child object
+      p_objecthandler.getChildObject(pobject,lchildobjectTable);
+     lcommand :='SELECT ';
+
+      -- no attribute N? ( like for a view) --> select *
+      if (pobject.attributes.COUNT=0) then
+        lcommand := lcommand ||'*';
+      end if;
+
+      limitToActive:=false;
+
+      -- first : column attribute
+      idx:=plevel+1;
+      for i in (plevel+1)..pobject.attributes.COUNT  loop
+        lattribute :=pobject.attributes(i);
+
+        -- never get lastmodified value
+        if (lattribute.attributeName <> p_objecthandler.ATTRIBUTE_NAME_LASTMODIFIED  and lattribute.attributeName <> (p_objecthandler.ATTRIBUTE_NAME_VERSION||suffixEntity) and lattribute.attributeName <> p_objecthandler.ATTRIBUTE_NAME_SA_LABEL ) then
+            if (plevel>0 or (pScope is null  or  instr(pScope,SCOPE_ALL)>0 or  instr(pScope,SCOPE_ROOT)>0 ) or (lattribute.sqLName='UUID' or lattribute.sqLName='LASTMODIFIED')) then
+               if (idx>plevel+1) then
+                  lcommand :=lcommand||', ';
+               end if;
+
+              if (lattribute.attributeName =  p_objecthandler.ATTRIBUTE_NAME_STATUSCODE) then
+                 limitToActive :=true;
+              end if;
+              idx:=idx+1;
+              if (lattribute.sqltype ='IDTABLE_T') then
+                 lcommand :=lcommand||'CURSOR (SELECT * FROM TABLE( c'||plevel||'.'||lattribute.sqLName||')) as "'||lower(lattribute.sqLName)||'"';
+              else
+                 lcommand :=lcommand||' c'||plevel||'.'||lattribute.sqLName||' as "'||lower(lattribute.sqLName)||'"';
+              end if;
+            end if;
+        end if;
+      end loop;
+
+
+       --second : sub list object
+       for i in 1..lchildobjectTable.COUNT  loop
+          lchildobject :=lchildobjectTable(i);
+          if (pScope is null  or  instr(pScope,SCOPE_ALL)>0 or instr(pScope,lchildobject.info.Name)>0 ) then
+             lcommand :=lcommand||', CURSOR ( ';
+             lcommandChild := priv_getSqlBaseSelect(lchildobject.info.name,pscope,plevel+1,pObject);
+             lcommand :=lcommand||lcommandChild;
+            lcommand :=lcommand||' ) as '||lchildobject.info.Name;
+            end if;
+      end loop;
+
+      if (instr(pScope,SCOPE_LINK)>0 and plevel=0 ) then
+        lcommand := lcommand||', CURSOR ('|| getSqlBaseLink() ||') as link ';
+      end if;
+      if (instr(pScope,SCOPE_EXTRADATA)>0 and plevel=0 ) then
+        lcommand := lcommand||', CURSOR ('|| p_objecthandler.getSqlBaseExtraData(pObject) ||') as extradata ';
+      end if;
+       if (instr(pScope,SCOPE_HISTORY)>0 and plevel=0 ) then
+        lcommand := lcommand||', CURSOR ('|| p_objecthandler.getSqlBaseHistory(pObject) ||') as history ';
+      end if;
+      lcommand := lcommand||' FROM '||p_objecthandler.getSqlFullTableName(pObject)||' c'||plevel;
+
+      if ( pObject.info.type=p_objecthandler.TYPE_LINK and plevel=0) then
+        lcommand := lcommand||' WHERE C0.ROLE='''||pObject.info.code||'''';
+      end if;
+
+       --join parent with child
+       if ( plevel>0) then
+           lcommand :=lcommand||' WHERE ';
+           if (limitToActive) then
+              lcommand :=lcommand||' c'||plevel||'.STATUSCODE='''||p_objecthandler.STATUS_ACTIVE ||'''';
+           else
+             lcommand :=lcommand||' 1=1 ';
+           end if;
+            for j in 1..pObjectParent.attributes.count loop
+               if (pObjectParent.attributes(j).pkname is not null) then
+                  lcommand :=lcommand||' AND ';
+
+                    lattribute :=pObjectParent.attributes(j);
+                    lcommand :=lcommand||' c'||(plevel)||'.'||lattribute.sqLName||'=c'||(plevel-1)||'.'||lattribute.sqLName;
+
+              end if;
+            end loop;
+
+       end if;
+       p_objecthandler.listAllObjectTable(lidxObject).sqlBaseSelect(pScope):= lcommand;
+    end if;
+
+    return  p_objecthandler.listAllObjectTable(lidxObject).sqlBaseSelect(pScope);
+   end;
+
+  function  getSqlBaseSelect    ( pobjectName in varchar2  , pScope in varchar2 default SCOPE_ALL ) return varchar2   is
+
+    lObjectParentnull p_objecthandler.t_object;
+  begin
+
+    return priv_getSqlBaseSelect(pobjectName,pScope,0,lObjectParentnull);
+  end;
+  /**
+    get a sql base insert for an object
+  */
+   function getSqlBaseInsert  ( pobjectName in varchar2 ) return varchar2 is
+
+    lcommand  varchar2(32000);
+    lcommandColumn  varchar2(32000);
+    lcommandValue varchar2(32000);
+    lattributetable p_objecthandler.t_attributetable;
+    lattribute p_objecthandler.t_attribute;
+
+    lidxObject integer;
+
+
+  BEGIN
+
+    -- get object
+     lidxObject := p_objecthandler.getIdxObject(p_objecthandler.TYPE_ENTITY,pObjectName);
+
+    if ( p_objecthandler.listAllObjectTable(lidxObject).sqlbaseInsert is null) then
+      dbms_output.put_line('Creating insert command for Entity '||pobjectName);
+      lattributetable := p_objecthandler.listAllObjectTable(lidxObject).attributes;
+      lcommandColumn :='INSERT INTO '||p_objecthandler.getSqlFullTableName(p_objecthandler.listAllObjectTable(lidxObject))||' (';
+      lcommandValue :='VALUES (';
+      -- first :column attribute
+      for i in 1..lattributetable.COUNT  loop
+
+          lattribute :=lattributetable(i);
+          if (i>1) then
+                lcommandColumn :=lcommandColumn||', ';
+                lcommandValue :=lcommandValue||', ';
+          end if;
+          lcommandColumn :=lcommandColumn||lattribute.sqLName;
+          lcommandValue := lcommandValue||' :'||lattribute.attributename;
+      end loop;
+
+       lcommandColumn :=lcommandColumn||') ';
+       lcommandValue := lcommandValue||')';
+       p_objecthandler.listAllObjectTable(lidxObject).sqlbaseInsert := lcommandColumn|| lcommandValue;
+     end if;
+    return  p_objecthandler.listAllObjectTable(lidxObject).sqlbaseInsert;
+  end;
+
+  /**
+    get a sql base update for an object
+  */
+   function getSqlBaseUpdate  (pobjectName in varchar2 ) return varchar2 is
+
+    lcommand  varchar2(32000);
+    lcommandColumn  varchar2(32000);
+    lcommandWhere varchar2(32000);
+    lattributetable p_objecthandler.t_attributetable;
+    lattribute p_objecthandler.t_attribute;
+    lobject p_objecthandler.t_object;
+    idx integer;
+    lidxObject integer;
+    limitToActive boolean :=false;
+
+
+  BEGIN
+
+     lidxObject := p_objecthandler.getIdxObject(p_objecthandler.TYPE_ENTITY,pObjectName);
+
+    if ( p_objecthandler.listAllObjectTable(lidxObject).sqlbaseUpdate is null) then
+      dbms_output.put_line('Creating update command for Entity '||pobjectName);
+
+      -- get object
+      p_objecthandler.getObject(p_objecthandler.TYPE_ENTITY,pObjectName,lobject);
+      lattributetable := lobject.attributes;
+      lcommandColumn :='UPDATE '||p_objecthandler.getSqlFullTableName(lobject)||' set ';
+      lcommandWhere :='';
+      idx :=0;
+      -- first :column attribute
+      for i in 1..lattributetable.COUNT  loop
+           lattribute :=lattributetable(i);
+            if (lattribute.attributeName =  p_objecthandler.ATTRIBUTE_NAME_STATUSCODE) then
+               limitToActive :=true;
+            end if;
+           if (lattribute.pkname is null) then
+               idx :=idx+1;
+               if (idx>1) then
+                    lcommandColumn :=lcommandColumn||', ';
+               end if;
+               lcommandColumn :=lcommandColumn||lattribute.sqLName||'=:'||lattribute.attributename;
+           else
+
+               lcommandWhere:=lcommandWhere||' AND '||lattribute.sqLName||'=:'||lattribute.attributename;
+           end if;
+      end loop;
+      if (limitToActive) then
+          lcommandWhere :=lcommandWhere ||' AND STATUSCODE='''|| p_objecthandler.STATUS_ACTIVE||'''';
+      end if;
+      p_objecthandler.listAllObjectTable(lidxObject).sqlbaseUpdate := lcommandColumn||' WHERE 1=1 '||lcommandWhere;
+    end if;
+    return  p_objecthandler.listAllObjectTable(lidxObject).sqlbaseUpdate ;
+  end;
+
+  function getSqlBaseUpdatePrevious  (pobjectName in varchar2 ) return varchar2 is
+
+    lcommand  varchar2(32000);
+    lcommandColumn  varchar2(32000);
+    lcommandWhere varchar2(32000);
+    lattributetable p_objecthandler.t_attributetable;
+    lattribute p_objecthandler.t_attribute;
+    lobject p_objecthandler.t_object;
+    lidxObject integer;
+    suffixEntity varchar2(255);
+    limitToActive boolean :=false;
+
+  BEGIN
+
+     lidxObject := p_objecthandler.getIdxObject(p_objecthandler.TYPE_ENTITY,pObjectName);
+    -- get object
+
+    if ( p_objecthandler.listAllObjectTable(lidxObject).sqlbaseUpdatePrevious is null) then
+      dbms_output.put_line('Creating update previous command for Entity '||pobjectName);
+
+      -- get object
+      p_objecthandler.getObject(p_objecthandler.TYPE_ENTITY,pObjectName,lobject);
+
+      suffixEntity:=substr(lobject.info.name,instr(lobject.info.name,'_',-1)+1);
+      lattributetable := lobject.attributes;
+      lcommandColumn :='UPDATE '||p_objecthandler.getSqlFullTableName(lobject)||' set effectiveenddate = GREATEST( effectivestartdate,:effectivestartdate ), statuscode= decode(sign(:effectivestartdate- effectivestartdate),1,statuscode, '''||p_objecthandler.STATUS_INVALID ||''') ';
+
+      lcommandWhere :='';
+
+      -- first :column attribute
+      for i in 1..lattributetable.COUNT  loop
+           lattribute :=lattributetable(i);
+            if (lattribute.attributeName =  p_objecthandler.ATTRIBUTE_NAME_STATUSCODE) then
+               limitToActive :=true;
+            end if;
+
+           if (lattribute.pkname is not null and lattribute.attributename  !=(p_objecthandler.ATTRIBUTE_NAME_VERSION||suffixEntity)) then
+
+              lcommandWhere:=lcommandWhere||' AND ' || lattribute.sqLName||'=:'||lattribute.attributename;
+           end if;
+      end loop;
+
+       if (limitToActive) then
+          lcommandWhere :=lcommandWhere ||' AND STATUSCODE='''|| p_objecthandler.STATUS_ACTIVE||'''';
+      end if;
+      p_objecthandler.listAllObjectTable(lidxObject).sqlbaseUpdatePrevious := lcommandColumn||' WHERE 1=1 '||lcommandWhere;
+    end if;
+    return  p_objecthandler.listAllObjectTable(lidxObject).sqlbaseUpdatePrevious;
+  end;
+
+
+  function getSqlBaseSelectExist  (pobjectName in varchar2 ) return varchar2 is
+
+
+    lcommandColumn  varchar2(32000);
+    lcommandWhere varchar2(32000);
+    lattributetable p_objecthandler.t_attributetable;
+    lattribute p_objecthandler.t_attribute;
+    lobject p_objecthandler.t_object;
+    lidxObject integer;
+    suffixEntity varchar2(255);
+
+  BEGIN
+     -- get object
+     lidxObject := p_objecthandler.getIdxObject(p_objecthandler.TYPE_ENTITY,pObjectName);
+
+
+     if ( p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectExist is null) then
+       dbms_output.put_line('Creating select exist command for Entity'||pobjectName);
+
+
+       -- get object
+      p_objecthandler.getObject(p_objecthandler.TYPE_ENTITY,pObjectName,lobject);
+
+       suffixEntity:=substr(lobject.info.name,instr(lobject.info.name,'_',-1)+1);
+
+       lattributetable := lobject.attributes;
+       lcommandColumn :='SELECT count(1) FROM '||p_objecthandler.getSqlFullTableName(lobject);
+       lcommandWhere :='';
+
+      -- first :column attribute
+      for i in 1..lattributetable.COUNT  loop
+           lattribute :=lattributetable(i);
+           if (lattribute.pkname is not null and lattribute.attributename !=(p_objecthandler.ATTRIBUTE_NAME_VERSION||suffixEntity)) then
+              lcommandWhere:=lcommandWhere||' AND '||lattribute.sqLName||'=:'||lattribute.attributename;
+           end if;
+      end loop;
+      p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectExist := lcommandColumn||' WHERE 1=1 '|| lcommandWhere;
+    end if;
+dbms_output.put_line ('Coucou 1 : ['||p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectExist||']');
+    return  p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectExist;
+  end;
+
+
+function getSqlBaseSelectMaxPrevious  (pobjectName in varchar2 ) return varchar2 is
+
+
+    lcommandColumn  varchar2(32000);
+    lcommandWhere varchar2(32000);
+    lattributetable p_objecthandler.t_attributetable;
+    lattribute p_objecthandler.t_attribute;
+    lobject p_objecthandler.t_object;
+    lidxObject integer;
+    suffixEntity varchar2(255);
+
+  BEGIN
+     -- get object
+     lidxObject := p_objecthandler.getIdxObject(p_objecthandler.TYPE_ENTITY,pObjectName);
+
+
+     if ( p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectMaxPrevious is null) then
+       dbms_output.put_line('Creating select max previous command for Entity '||pobjectName);
+
+
+       -- get object
+       p_objecthandler.getObject(p_objecthandler.TYPE_ENTITY,pObjectName,lobject);
+
+       suffixEntity:=substr(lobject.info.name,instr(lobject.info.name,'_',-1)+1);
+
+       lattributetable := lobject.attributes;
+       lcommandColumn :='SELECT NVL(MAX(VERSION'||substr(pobjectName,instr(pobjectName,'_',-1)+1) || ' ),0) AS VERSION FROM '||p_objecthandler.getSqlFullTableName(lobject);
+       lcommandWhere :='';
+
+      -- first :column attribute
+      for i in 1..lattributetable.COUNT  loop
+           lattribute :=lattributetable(i);
+           if (lattribute.pkname is not null and lattribute.attributename !=(p_objecthandler.ATTRIBUTE_NAME_VERSION||suffixEntity)) then
+              lcommandWhere:=lcommandWhere||' AND '||lattribute.sqLName||'=:'||lattribute.attributename;
+           end if;
+      end loop;
+      p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectMaxPrevious := lcommandColumn||' WHERE 1=1 '|| lcommandWhere;
+    end if;
+    return  p_objecthandler.listAllObjectTable(lidxObject).sqlbaseSelectMaxPrevious;
+  end;
+end;
+
+create or replace
+PACKAGE                  p_entityservice IS
+  /** package for OBJECT Manipulation **/
+ 
+  setdbms_output boolean :=false;
+  DATETIMEFORMAT CONSTANT VARCHAR2(30) :='YYYY-MM-DD"T"HH24:MI:SS"Z"';
+  TIMESTAMPFORMAT CONSTANT VARCHAR2(40) :='YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"';
+ 
+ 
+  
+   TYPE t_json IS record
+   (
+      jsonValue clob,
+      jsonHash varchar2(64)
+   );
+  
+  
+    TYPE t_bind IS record
+   (
+      attributename  varchar2(255),
+      kind integer  default 1,
+      varchar2_value varchar2(4000)  default null,
+      number_value number default 0,
+      date_value date default null,
+      timestamp_value timestamp  default null,
+      raw_value raw(255)  default null,
+      ids_value IDTABLE_T default null
+    
+   );
+  
+     -- t_kind type + timestamp + date
+    c_null     constant integer := 1;
+    c_true     constant integer := 2;
+    c_false    constant integer := 3;
+    c_number   constant integer := 4;
+    c_varchar2 constant integer := 5;
+    c_object   constant integer := 6;
+    c_array       constant integer := 7;
+    c_ids         constant integer := 11;
+    c_date         constant integer := 12;
+    c_timestamp    constant integer := 13;
+    c_raw        constant integer := 14;
+   
+    type ttable_bind is table of t_bind;
+    function getAllCursor(pobjectnameorcode in varchar2  , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR  ;
+
+   -- get a cursor to a SQL Select over one object search by UUID
+   -- using scope feature : see p_objecthandler constant for scope understanding
+   function  getCursor(pobjectnameorcode in varchar2  ,puuid in raw , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR ;
+  
+   -- get a cursor to a SQL Select over one object search by ID
+   function  getByIdCursor ( pobjectnameorcode in varchar2 ,id in varchar2, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR;
+ 
+  --get JSON representation of an object
+   function  getJson (pobjectnameorcode in varchar2 , puuid in raw,  puseCache integer default 0,pscope varchar2 default P_OBJECTHANDLER.SCOPE_ALL) return clob  ;
+   procedure getJsonFromCache ( pobjectnameorcode in varchar2 ,puuid in raw,plastmodified in out  TIMESTAMP, pjsonobject in out NOCOPY clob  ,pjsonHash out varchar2 ) ;
+  
+   function  storeObject(jsonObject in out nocopy clob,pobjectnameorcode in varchar2  default null,psaveHistory in integer default 1) return clob;
+   --save in history table an object json snaphshot ( raise an exception if nothing has change, exept if bForceSave >0)
+   procedure saveHistory (pobjectnameorcode in varchar2 , puuid in raw ,bForceSave in integer :=0 );
+ 
+   function  mergeExtradata( psource1 in  kvtable_t, psource2 in kvtable_t) return kvtable_t;
+   function  exist (pobjectname in varchar2 , puuid in raw ) return timestamp ;
+   function  existById (pobjectname in varchar2 , pid in varchar2 ) return raw ;
+  
+   function  dolock (pobjectname in varchar2 , puuid in raw, plastmodified  in timestamp default null) return timestamp ;
+
+END p_entityservice;
+
+create or replace
+PACKAGE                  p_entityservice IS
+  /** package for OBJECT Manipulation **/
+ 
+  setdbms_output boolean :=false;
+  DATETIMEFORMAT CONSTANT VARCHAR2(30) :='YYYY-MM-DD"T"HH24:MI:SS"Z"';
+  TIMESTAMPFORMAT CONSTANT VARCHAR2(40) :='YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"';
+ 
+ 
+  
+   TYPE t_json IS record
+   (
+      jsonValue clob,
+      jsonHash varchar2(64)
+   );
+  
+  
+    TYPE t_bind IS record
+   (
+      attributename  varchar2(255),
+      kind integer  default 1,
+      varchar2_value varchar2(4000)  default null,
+      number_value number default 0,
+      date_value date default null,
+      timestamp_value timestamp  default null,
+      raw_value raw(255)  default null,
+      ids_value IDTABLE_T default null
+    
+   );
+  
+     -- t_kind type + timestamp + date
+    c_null     constant integer := 1;
+    c_true     constant integer := 2;
+    c_false    constant integer := 3;
+    c_number   constant integer := 4;
+    c_varchar2 constant integer := 5;
+    c_object   constant integer := 6;
+    c_array       constant integer := 7;
+    c_ids         constant integer := 11;
+    c_date         constant integer := 12;
+    c_timestamp    constant integer := 13;
+    c_raw        constant integer := 14;
+   
+    type ttable_bind is table of t_bind;
+    function getAllCursor(pobjectnameorcode in varchar2  , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR  ;
+
+   -- get a cursor to a SQL Select over one object search by UUID
+   -- using scope feature : see p_objecthandler constant for scope understanding
+   function  getCursor(pobjectnameorcode in varchar2  ,puuid in raw , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR ;
+  
+   -- get a cursor to a SQL Select over one object search by ID
+   function  getByIdCursor ( pobjectnameorcode in varchar2 ,id in varchar2, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR;
+ 
+  --get JSON representation of an object
+   function  getJson (pobjectnameorcode in varchar2 , puuid in raw,  puseCache integer default 0,pscope varchar2 default P_OBJECTHANDLER.SCOPE_ALL) return clob  ;
+   procedure getJsonFromCache ( pobjectnameorcode in varchar2 ,puuid in raw,plastmodified in out  TIMESTAMP, pjsonobject in out NOCOPY clob  ,pjsonHash out varchar2 ) ;
+  
+   function  storeObject(jsonObject in out nocopy clob,pobjectnameorcode in varchar2  default null,psaveHistory in integer default 1) return clob;
+   --save in history table an object json snaphshot ( raise an exception if nothing has change, exept if bForceSave >0)
+   procedure saveHistory (pobjectnameorcode in varchar2 , puuid in raw ,bForceSave in integer :=0 );
+ 
+   function  mergeExtradata( psource1 in  kvtable_t, psource2 in kvtable_t) return kvtable_t;
+   function  exist (pobjectname in varchar2 , puuid in raw ) return timestamp ;
+   function  existById (pobjectname in varchar2 , pid in varchar2 ) return raw ;
+  
+   function  dolock (pobjectname in varchar2 , puuid in raw, plastmodified  in timestamp default null) return timestamp ;
+
+END p_entityservice;
+
+create or replace
+PACKAGE BODY                                                    p_entityservice  IS
+    /*
+      20180227 : JEB :  function existById
+        Remplacement de (1) par (2). Objetif, permettre l'appel avec le seul ID
+        (1) where c.scheme = :scheme
+        (1) and   c.issuer = :issuer
+        (2) where c.scheme = nvl( :scheme, c.scheme )
+        (2) and   c.issuer = nvl( :issuer, c.issuer )
+    */
+
+function  mergeExtradata( psource1 in  kvtable_t, psource2 in kvtable_t) return kvtable_t is
+   ldest kvtable_t ;
+   lelem kv_t;
+   idx integer;
+   idx2 integer;
+   idxfind integer;
+   bdelete boolean;
+begin
+
+  --copy source 1 to target
+  ldest:=kvtable_t();
+  if (psource1 is not null) then
+    for idx in 1 .. psource1.count loop
+        bdelete:=false;
+        for idx2 in 1 .. psource2.count loop
+           if ( psource2(idx2).key = '-'||psource1(idx).key) then
+              bdelete := true;
+           end if;
+        end loop;
+         -- key start with minus operator (-)  mean with don't want it anymore !! delete the key
+        if (not bdelete and substr(psource1(idx).key,1,1) !='-') then
+           ldest.extend(1);
+           ldest(ldest.count) := psource1(idx);
+         end if;
+    end loop;
+  end if;
+
+  --update using the source 2
+  for idx in 1 .. psource2.count loop
+    lelem := psource2(idx);
+    -- search
+    idxfind:=0;
+
+     for idx2 in 1 .. ldest.count loop
+       if (ldest(idx2).key=lelem.key and substr(lelem.key,1,1) !='-') then
+          idxfind :=idx2;
+        end if;
+     end loop;
+    if ( idxfind>0) then
+       ldest(idxfind):=lelem;
+    else
+     if (substr(lelem.key,1,1) !='-') then
+      ldest.extend(1);
+      ldest(ldest.count):=lelem;
+      end if;
+    end if;
+  end loop;
+
+  return ldest;
+
+end;
+
+   /**
+      Save the object in the history
+     */
+  procedure priv_saveJsonInHistory (pobjectCode in varchar2 , puuid in raw, plastmodified in   TIMESTAMP, pjsonobject in  out NOCOPY clob , pjsonHash  varchar2 default null ,noRaiseExceptionOnDuplicate integer default 0) is
+
+     lobject P_OBJECTHANDLER.t_object;
+     lrequest varchar2(2000);
+  begin
+
+     P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectCode,lobject);
+
+     lrequest:='insert INTO ' ||P_OBJECTHANDLER.getSqlSpecificTable(lobject,P_OBJECTHANDLER.SCOPE_HISTORY,P_OBJECTHANDLER.DEFAULT_HISTORY_TABLE)|| ' values (
+                  :lobjectCode,
+                  :puuid,
+                  :plastmodified,
+                  :pjsonobject,
+                  :pjsonHash,
+                  10)';
+     execute immediate lrequest using lobject.info.code,puuid,plastmodified, pjsonobject,pjsonHash ;
+     exception
+       when DUP_VAL_ON_INDEX then
+        if (noRaiseExceptionOnDuplicate>0) then
+          return;
+        end if;
+        raise;
+  end;
+
+
+/**
+    get a cursor to an  object by uuid
+    using scope
+ **/
+ procedure priv_get ( pobjectnameorcode in varchar2 ,  puuid in raw, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ,pcursor out SYS_REFCURSOR)
+AS
+  lobject  P_OBJECTHANDLER.t_object;
+  lcommand  varchar2(32000);
+
+  i integer;
+BEGIN
+
+  --get the object  based on the code or name (ex :PER = person
+  P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectnameorcode,lobject);
+
+  -- get the default base select for the object
+  lcommand :=P_ENTITYHANDLER.getSqlBaseSelect( lobject.info.name,pscope);
+
+  -- adjust the where clause with the uuid and open the cursor !
+  if (puuid is not null ) then
+      lcommand := lcommand || ' where c0.uuid=:1' ;
+      OPEN pcursor FOR lcommand USING puuid;
+  else
+      OPEN pcursor  FOR lcommand ;
+  end if;
+end;
+
+
+
+/**
+   Private procedure to get a jsonObject from an object based on the UUID
+**/
+procedure  priv_getJson (pobjectnameorcode in varchar2 , puuid in raw, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL, pjson in out nocopy t_json )  is
+
+      lcursorObject SYS_REFCURSOR;
+
+       BEGIN
+
+            -- get a SQL CURSOR for the object
+            priv_get(pobjectnameorcode, puuid,pscope ,lcursorObject);
+
+            APEX_JSON.initialize_clob_output;
+            --apex_json.open_object;
+            -- DO IT !!!!! create JSON based on cursor
+            APEX_JSON.write( lcursorObject );
+
+           --apex_json.close_object;
+            -- copy the JSON to new clob , removing fisrt and last character ([]) representing an JSON ARRAY to
+            -- simplify to a JSONobject
+            dbms_lob.createtemporary(pjson.jsonValue,true,dbms_lob.CALL);
+            DBMS_LOB.COPY (
+                  pjson.jsonValue,
+                  APEX_JSON.get_clob_output,
+                  DBMS_LOB.GETLENGTH(APEX_JSON.get_clob_output)-3,
+                  1,
+                  2);
+
+            -- calculate hash value to be sure somothing has change
+            pjson.jsonHash :=sys.dbms_crypto.hash(pjson.jsonValue,2);
+
+           --apex_json.close_object;
+           --free local clob
+            APEX_JSON.free_output;
+
+   end;
+   /**
+   Private procedure to get a jsonObject from an object based on the UUID
+**/
+procedure  priv_getJson2 (pobjectnameorcode in varchar2 , puuid in raw, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL, pjson in out nocopy t_json )  is
+
+      lcursorObject SYS_REFCURSOR;
+
+       BEGIN
+
+            -- get a SQL CURSOR for the object
+            priv_get(pobjectnameorcode, puuid,pscope ,lcursorObject);
+
+
+   end;
+
+   /**
+    get a cursor to an search object by id
+    id must be provided using scheme/issuer/value pattern (for ex cardif/orion/135163)
+    using scope
+   **/
+   function getByIdCursor ( pobjectnameorcode in varchar2 ,id in varchar2, pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR
+  AS
+
+     lcommand  varchar2(32000);
+     lobject P_OBJECTHANDLER.t_object;
+     i integer;
+     lcursor SYS_REFCURSOR;
+  BEGIN
+
+    --get the object name based on the code (ex :PER = person
+    P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectnameorcode,lobject);
+
+    -- get the default base select for the object
+    lcommand :=P_ENTITYHANDLER.getSqlBaseSelect( lobject.info.name,pscope);
+
+    -- adjust the where clause with the uuid and open the cursor !
+    if (id is not null ) then
+        --- JEB lcommand := lcommand || ' where ci=:1' ;
+        lcommand := lcommand || ', table (c0.personids ) c99 where c99.id = :1' ;
+/*
+JEB : 2018 :
+Résolution de l'erreur ORA-00904: "CI" : identificateur non valide
+par une astuce incomplète impliquant uniquement R_PERSON
+TODO : Généraliser cette correction avec une valeur dynamique pour l'ids
+
+        (1) lcommand := lcommand || ' where ci=:1' ;
+        (2) lcommand := lcommand || ', table (c0.personids ) c99 where c99.id = :1' ;
+*/
+--dbms_output.put_line ('coucou 98 : ['||lcommand|| '], used id = ['||id||']') ;
+        OPEN lcursor FOR lcommand USING id;
+    else
+--dbms_output.put_line ('coucou 99 : ['||lcommand|| ']') ;
+        OPEN lcursor  FOR lcommand ;
+    end if;
+
+   return lcursor;
+  end;
+
+
+ /**
+    get a cursor to an search object by UUIid
+    UUid must be provided USING raw FORMAT
+    using scope
+   **/
+
+  function getAllCursor( pobjectnameorcode in varchar2  , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR   is
+   my_cursor SYS_REFCURSOR;
+  begin
+    priv_get (pobjectnameorcode,null,pscope,my_cursor);
+   RETURN my_cursor;
+  end;
+
+ /**
+    get a cursor to an search object by UUIid
+    UUid must be provided USING raw FORMAT
+    using scope
+   **/
+
+  function getCursor(pobjectnameorcode in varchar2  ,puuid in raw , pscope in varchar2 default P_OBJECTHANDLER.SCOPE_ALL ) return SYS_REFCURSOR   is
+   my_cursor SYS_REFCURSOR;
+  begin
+    priv_get (pobjectnameorcode,puuid,pscope,my_cursor);
+   RETURN my_cursor;
+  end;
+
+
+ /**
+   get a json from a cache table
+   here the cache use his the histoty table !
+   return null if nothing in the cache (history dor demo)
+ */
+ procedure getJsonFromCache ( pobjectnameorcode in varchar2 ,puuid in raw,plastmodified in out  TIMESTAMP, pjsonobject in out NOCOPY clob  , pjsonHash  out varchar2 ) is
+       l_request varchar2(1024);
+       lobject P_OBJECTHANDLER.t_object;
+  begin
+
+
+   --get the object name based on the code (ex :PER = person
+  P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectnameorcode,lobject);
+
+  l_request:= 'select b.lastmodified,a.jsonobject,a.jsonHash
+          from '||P_OBJECTHANDLER.getSqlSpecificTable(lobject,P_OBJECTHANDLER.SCOPE_HISTORY,P_OBJECTHANDLER.DEFAULT_HISTORY_TABLE)|| ' a ,'|| P_OBJECTHANDLER.getSqlFullTableName(lobject) || ' b
+          where b.uuid=:puuid and
+               a.uuid(+)=b.uuid and
+               a.lastmodified(+)=b.lastmodified' ;
+    if ( setdbms_output) then
+      dbms_output.put_line('l_request='||l_request) ;
+    end if;
+    execute immediate  l_request into plastmodified,pjsonobject,pjsonHash  using puuid ;
+
+    exception
+          when NO_DATA_FOUND then
+              raise_application_error(-20013,'Object '||lobject.info.name||' with uuid '||puuid||' does not exist');
+  end;
+
+
+   /**
+   save in the appropriate history table the json asscoated with
+   an object, this procedure must be call each time an object has been modified
+
+   NB : fire a EXCEPTION if the object record doesn't change since last history
+        except if bForceSave is not equal 0
+  */
+  procedure  saveHistory (pobjectnameorcode in varchar2 , puuid in raw ,bForceSave in integer :=0 ) is
+   l_request varchar2(32000);
+
+   ljsonobjectsize integer;
+   llastmodified   TIMESTAMP;
+   lJsonHashPrevious varchar2(64);
+   l_jsonobject t_json ;
+   lobject P_OBJECTHANDLER.t_object;
+  begin
+
+      --get the object name based on the code (ex :PER = person
+     P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectnameorcode,lobject);
+
+
+    l_request:= 'select * from (select b.lastmodified,a.jsonHash
+          from '||P_OBJECTHANDLER.getSqlSpecificTable(lobject,P_OBJECTHANDLER.SCOPE_HISTORY,P_OBJECTHANDLER.DEFAULT_HISTORY_TABLE) || ' a ,'|| P_OBJECTHANDLER.getSqlFullTableName(lobject) || ' b
+          where b.uuid=:puuid  and
+           a.uuid(+)=b.uuid
+               order by a.lastmodified desc ) where rownum=1' ;
+
+
+     execute immediate  l_request into llastmodified,lJsonHashPrevious  using puuid ;
+
+     priv_getJson( lobject.info.name, puuid,P_OBJECTHANDLER.SCOPE_ALL,l_jsonobject);
+
+
+    if (lJsonHashPrevious is null or lJsonHashPrevious<>l_jsonobject.jsonHash or bForceSave>0) then
+        priv_saveJsonInHistory(lobject.info.name,puuid,llastmodified,l_jsonobject.jsonValue,l_jsonobject.jsonHash,bForceSave );
+    else
+        raise_application_error(-20109,'object '||lobject.info.name||' with uuid '||puuid|| ' does not change ! : '||l_jsonobject.jsonHash||'/'||lJsonHashPrevious);
+    end if;
+
+    DBMS_LOB.FREETEMPORARY(l_jsonobject.jsonValue);
+   --  raise_application_error(-20109,'object '||lobject.info.name||' with uuid '||puuid|| ' does not change ! : '||l_jsonobject.jsonHash||'/'||lJsonHashPrevious);
+     exception
+          when NO_DATA_FOUND then
+             raise_application_error(-20013,'Object '||lobject.info.name||' with uuid '||puuid||' does not exist');
+   end;
+
+
+
+  /**
+     Get a JSON Object based on its UUID
+   **/
+  function getJson(pobjectnameorcode in varchar2 , puuid in raw, puseCache integer  default 0,pscope varchar2 default P_OBJECTHANDLER.SCOPE_ALL) return clob  is
+   pragma autonomous_transaction;
+
+     jsonHash varchar2(64);
+     l_jsonobject t_json;
+     l_lastmodified   TIMESTAMP;
+     my_cursor SYS_REFCURSOR;
+     lobject P_OBJECTHANDLER.t_object;
+  begin
+
+       --get the object name based on the code (ex :PER = person
+       P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectnameorcode,lobject);
+
+       --do we want to use cache ? (only for pscope=P_OBJECTHANDLER.SCOPE_ALL)
+       if (puseCache!=0 and pscope= P_OBJECTHANDLER.SCOPE_ALL)then
+            getJsonFromCache( lobject.info.name, puuid,l_lastmodified,l_jsonobject.jsonValue,l_jsonobject.jsonHash);
+       end if;
+
+        --if not or if no object find in histirical, need to create JSON !
+       if (nvl(dbms_lob.getlength(l_jsonobject.jsonValue),0)=0) then
+           priv_getJson( lobject.info.name,puuid,pscope,l_jsonobject);
+
+        -- save the result in cache idf requested
+        if (puseCache!=0 and l_lastmodified is not null  and pscope= P_OBJECTHANDLER.SCOPE_ALL)then
+            priv_saveJsonInHistory ( lobject.info.name,puuid,l_lastmodified,l_jsonobject.jsonValue,l_jsonobject.jsonHash,1);
+        end if;
+
+      end if;
+
+         -- COMMIT mandatory !!!<--> autonomus transaction
+        commit;
+        return l_jsonobject.jsonValue;
+
+   end;
+
+
+
+  /**
+  do a lock on an object by updating root object
+  based on UUID and lastmodified date
+  */
+  function dolock (pobjectname in varchar2 , puuid in raw, plastmodified  in timestamp default null) return timestamp
+     is
+      lobjectowner varchar2(255);
+      lrequest  varchar2(1024);
+      llastmodified timestamp;
+      lobject P_OBJECTHANDLER.t_object;
+  begin
+
+         --get the object name based on the code (ex :PER = person
+         P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectname,lobject);
+
+         llastmodified:=CURRENT_TIMESTAMP;
+         lrequest:= 'update  '||P_OBJECTHANDLER.getSqlFullTableName(lobject) || '
+            set lastmodified = :llastmodified
+            where uuid = :puuid ' ;
+               --raise_application_error(-20101,lrequest);
+
+         if ( plastmodified is not null) then
+              lrequest:= lrequest||' and lastmodified=:plastmodified';
+               execute immediate  lrequest  using llastmodified,puuid ,plastmodified;
+         else
+               execute immediate  lrequest  using llastmodified,puuid ;
+         end if;
+           --raise_application_error(-20101,' rowcount=='||sql%rowcount);
+         if (sql%rowcount=0) then
+             raise_application_error(-20101,'Can''t lock object '||pobjectname||' using uuid '||puuid||' and lastmodified '||plastmodified);
+          end if;
+        return llastmodified;
+
+      end ;
+
+    /**
+    check if an object exist
+    return timestamp of lasmodifed if true
+        null otherwhise
+    */
+    function  exist (pobjectname in varchar2 , puuid in raw ) return timestamp
+    is
+       llastmodified timestamp;
+       lobjectowner varchar2(255);
+       lrequest  varchar2(1024);
+       lobject P_OBJECTHANDLER.t_object;
+     begin
+
+          --get the object name based on the code (ex :PER = person
+         P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectname,lobject);
+
+         lrequest:= 'select b.lastmodified
+            from '||P_OBJECTHANDLER.getSqlFullTableName(lobject)  || ' b
+            where b.uuid=:puuid' ;
+         execute immediate  lrequest into llastmodified  using puuid ;
+        return llastmodified;
+           exception
+           when NO_DATA_FOUND then
+              return null;
+    end;
+
+
+    function  existById (pobjectname in varchar2 , pid in varchar2 ) return raw
+    is
+       llastmodified timestamp;
+       lobjectowner varchar2(255);
+       lrequest  varchar2(1024);
+       lobject P_OBJECTHANDLER.t_object;
+       luuid raw(16);
+
+       lscheme varchar2(255);
+       lissuer varchar2(255);
+       lid varchar2(255);
+
+
+     begin
+
+          --get the object name based on the code (ex :PER = person
+         P_OBJECTHANDLER.getObject(p_objecthandler.TYPE_ENTITY,pobjectname,lobject);
+         lscheme:=substr(pid,1,instr(pid,'.')-1);
+         lissuer:=substr(pid,instr(pid,'.')+1,instr(pid,'.',1,2 )-1-instr(pid,'.'));
+         lid    :=substr(pid,instr(pid,'.',1,2)+1);
+
+         lrequest:= 'select distinct b.uuid
+            from '||P_OBJECTHANDLER.getSqlFullTableName(lobject)  || ' b , table (b.'||lobject.info.name||'ids) c
+            where c.scheme = nvl( :scheme, c.scheme )
+              and c.issuer = nvl( :issuer, c.issuer )
+              and c.id = :id' ;
+
+         execute immediate  lrequest into luuid  using lscheme,lissuer,lid ;
+        return luuid;
+           exception
+           when NO_DATA_FOUND then
+              return null;
+           when others then
+             DBMS_OUTPUT.PUT_LINE(lrequest);
+             raise;
+    end existById;
+      /* store a link
+
+      */
+      procedure priv_storelink(puuid  in out raw, pobjectTypeCode in varchar2, pjo  in  OUT NOCOPY JSON_OBJECT_T ,peffectivestartdate in date, peffectiveenddate in date) is
+
+        sqlCommand varchar2(32000);
+     lretLink varchar2(32000);
+        lroleCode varchar2(255);
+        ltarget_objecttype varchar2(255);
+        llinked_role varchar2(255);
+        ltarget_id varchar2(255);
+        ltargetlinked_role varchar2(255);
+        ltarget_uuid raw(16);
+        llinkuuid raw(16);
+        leffectivestartdate date;
+        leffectiveenddate date;
+        pelement JSON_ELEMENT_T;
+
+      begin
+
+
+         if (pjo.is_Object) then
+               llinkuuid:=sys_guid();
+               lrolecode:=pjo.get_string('rolecode');
+               ltarget_objecttype:=pjo.get_string('target_objecttype');
+               ltarget_uuid:=pjo.get_string('target_uuid');
+               ltarget_id :=pjo.get_string('target_id');
+
+               /**
+               START DATE
+               **/
+               pelement:=pjo.get('effectivestartdate');
+               if (pelement is not null and pelement.is_Date() ) then
+                 leffectivestartdate:=pelement.to_date();
+               end if;
+
+               if (leffectivestartdate is null and peffectivestartdate is not null) then
+                  leffectivestartdate:= peffectivestartdate;
+               end if;
+
+               if ( leffectivestartdate is null) then
+                  leffectivestartdate:=trunc(sysdate);
+               end if;
+
+              /**
+                END DATE
+              **/
+               pelement:=pjo.get('effectiveenddate');
+              if (pelement is not null and pelement.is_Date() ) then
+                leffectiveenddate:=pelement.to_date();
+              end if;
+
+              if (leffectiveenddate is null and peffectiveenddate is not null) then
+                  leffectiveenddate:= peffectiveenddate;
+              end if;
+
+              if ( leffectiveenddate is null) then
+                  leffectiveenddate:=p_objecthandler.CONST_MAX_DATE;
+               end if;
+
+
+              if (ltarget_uuid is not null) then
+                if (  p_entityservice.exist (ltarget_objecttype, ltarget_uuid )  is null) then
+                  raise_application_error(-20104,'Link error : Entity '||ltarget_objecttype||'/'||ltarget_uuid||' does not exist');
+                end if;
+              elsif (ltarget_id is not null) then
+                ltarget_uuid :=p_entityservice.existById (ltarget_objecttype, ltarget_id );
+                 if ( ltarget_uuid is null) then
+                    raise_application_error(-20105,'Link error : Entity (by id) '||ltarget_objecttype||'/'||ltarget_id||' does not exist');
+                  end if;
+               else
+                   raise_application_error(-20106,'Link error : Must provided at least target uuid or target id to link object together');
+               end if;
+
+               lretLink := p_linkservice.storeLink ( lrolecode ,  pobjectTypeCode    , puuid              , ltarget_objecttype, ltarget_uuid    ,  1,  leffectivestartdate, leffectiveenddate);
+             --   procedure   storeLink( puuid in out raw, pROLE in VARCHAR2,  pfromOt in varchar2, pfromUuid in RAW, pfromRole in varchar2, ptoOt varchar2    , ptoUuid in RAW,  ptoRole in varchar2,  pupdatePrevious in integer default 1, peffectivestartdate in DATE default SYSDATE, peffectiveenddate in date default CONST_MAX_DATE)
+              -- storeLink( pobjectnameorcode in varchar2 , pfromOt in varchar2, pfromUuid in RAW,  ptoOt varchar2, ptoUuid in RAW,  pupdatePrevious in integer default 1, peffectivestartdate in DATE default SYSDATE, peffectiveenddate in date default CONST_MAX_DATE)
+
+
+          end if;
+
+      end;
+      /**
+        Add a Value to the bind table used for SQL Command
+        private , used by store Object procedure
+      */
+      procedure priv_addtoBind(ptableBind in out nocopy ttable_bind,  pvalue in out nocopy t_bind)
+      is
+        lvalue t_bind;
+      begin
+         ptableBind.extend(1);
+         ptableBind(ptableBind.count):=pvalue;
+      end;
+
+      /**
+         Add a RAW data (often exclusively the UUID Object) to the bind table
+      **/
+      procedure priv_addRawToBind(ptableBind in out nocopy ttable_bind, pattributeName in varchar2, pvalue in varchar2)
+      is
+        lvalue t_bind;
+      begin
+         lvalue.attributeName:=pattributeName;
+         lvalue.kind := c_raw;
+         lvalue.raw_value := pvalue;
+         priv_addtoBind(ptableBind,lvalue);
+      end;
+
+
+      /**
+         Add a table od Alternative ID to the bind table
+      **/
+      procedure priv_addIdsBind(ptableBind in out nocopy ttable_bind, pattributeName in varchar2, pids in out nocopy IDTABLE_T)
+      is
+        lvalue t_bind;
+      begin
+         lvalue.attributeName:=pattributeName;
+         lvalue.kind := c_ids;
+         lvalue.ids_value := pids;
+         priv_addtoBind(ptableBind,lvalue);
+      end;
+
+      /**
+         Add a date value to the bind table
+      **/
+      procedure priv_addDateToBind(ptableBind in out nocopy ttable_bind, pattributeName in varchar2, pvalue in date)
+      is
+        lvalue t_bind;
+      begin
+         lvalue.attributeName:=pattributeName;
+         lvalue.kind := c_date;
+         lvalue.date_value := pvalue;
+         priv_addtoBind(ptableBind,lvalue);
+      end;
+
+      /**
+         Add a timestamp value to the bind table
+      **/
+      procedure priv_addTimestampToBind(ptableBind  in out nocopy ttable_bind, pattributeName in varchar2, pvalue in timestamp)
+      is
+        lvalue t_bind;
+      begin
+         lvalue.attributeName:=pattributeName;
+         lvalue.kind := c_timestamp;
+         lvalue.timestamp_value := pvalue;
+         priv_addtoBind(ptableBind,lvalue);
+      end;
+
+      /**
+         Add a string (varchar2) value to the bind table
+      **/
+      procedure priv_addVarcharToBind(ptableBind in out nocopy ttable_bind, pattributeName in varchar2, pvalue in varchar2)
+      is
+        lvalue t_bind;
+      begin
+         lvalue.attributeName:=pattributeName;
+         lvalue.kind := c_varchar2;
+         lvalue.varchar2_value := pvalue;
+         priv_addtoBind(ptableBind,lvalue);
+      end;
+
+      /**
+         Add a number (integer or real) value to the bind table
+      **/
+      procedure priv_addNumberToBind(ptableBind in out nocopy ttable_bind, pattributeName in varchar2, pvalue in number)
+      is
+        lvalue t_bind;
+      begin
+         lvalue.attributeName:=pattributeName;
+         lvalue.kind := c_number;
+         lvalue.number_value := pvalue;
+         priv_addtoBind(ptableBind,lvalue);
+      end;
+
+
+        /**
+           Reassign a varchar value to a id type  value
+       **/
+       function  priv_getIds( pjson in out nocopy JSON_ELEMENT_T  ) return IDTABLE_T
+       is
+
+         ljsonChild  JSON_ARRAY_T;
+         ljsonObjectChild JSON_OBJECT_T;
+         lid ID_T;
+         lids IDTABLE_T;
+
+       begin
+
+         lids:=IDTABLE_T();
+
+         if (pjson is not null and pjson.is_Array()) then
+
+              ljsonChild :=TREAT (pjson AS JSON_ARRAY_T);
+              for r in 0..ljsonChild.get_size()-1 loop
+                 ljsonObjectChild:=TREAT (ljsonChild.get(r) AS JSON_OBJECT_T);
+                 lid:=ID_T(ljsonObjectChild.get_String('issuer'),ljsonObjectChild.get_String('scheme'),ljsonObjectChild.get_String('id'));
+
+
+                lids.extend(1);
+                lids(lids.count) := lid;
+           end loop;
+
+         end if;
+         return lids;
+       end;
+
+      /**
+
+      PRIVATE FUNCTION FOR EXECUTING A SQL COMMAND WITH A BINDING LIST
+      SQL CAN EITHER BE A SELECT / INSERT OR UPDATE COMMAND
+      acccording the type of command...
+
+      Select is only used for getting previous max version for a value object  -> return value if the max
+      on insert/update --the return is number of record inserted or updated
+      in case of an insert 0 is returned if a duplicate key has been fired.
+      in case of an update 0 is return if no rows has been updated.
+      **/
+      function priv_do_sql( psqlCommand in varchar2, ptableBind in out nocopy ttable_bind , bfetch in boolean default false) return integer
+      is
+        icursor integer;
+        retvalue integer;
+--jea_int pls_integer ;
+      begin
+
+       if ( setdbms_output) then
+             dbms_output.put_line ( 'SQL COMMAND :'||psqlCommand);
+       end if;
+       icursor := DBMS_SQL.OPEN_CURSOR;
+
+       -- -----------------------
+       -- 1 DO THE SQL PARSING
+       -- -----------------------
+       DBMS_SQL.PARSE(icursor, psqlCommand, DBMS_SQL.NATIVE);
+
+       -- Define fetching result into return value;
+       -- WARN !!! must be a number ( ex select max...)
+       if (bfetch) then
+             DBMS_SQL.DEFINE_COLUMN(icursor, 1, retvalue);
+       end if;
+
+       -- -----------------------
+       -- 2  DO the binding
+       -- -----------------------
+setdbms_output := true ;
+dbms_output.put_line ('Coucou 3 : ptableBind.count=['||ptableBind.count||']');
+       for k  in 1..ptableBind.count loop
+             -- binding is done only if bind variable ( ex ":lastname") is part of sql Command.. otherwise ythe bind is skipped
+             if (instr(psqlCommand,':'||ptableBind(k).attributeName)) >0 then
+dbms_output.put_line ('Coucou 4 : Dedans, ptableBind(k).attributeName=['|| ptableBind(k).attributeName||'], ['||ptableBind(k).kind||']');
+
+                  -- acccording kind (type of variable) - do the right binding
+                if (  ptableBind(k).kind = c_number) then
+                    if ( setdbms_output) then
+                       dbms_output.put_line (ptableBind(k).kind||' number / '||ptableBind(k).attributeName||'='||ptableBind(k).number_value)  ;
+                    end if;
+                    SYS.DBMS_SQL.BIND_VARIABLE(icursor,ptableBind(k).attributeName,ptableBind(k).number_value);
+                elsif (  ptableBind(k).kind = c_ids) then
+                    if ( setdbms_output) then
+                      dbms_output.put_line ('bind type '||ptableBind(k).kind||' ids / '||ptableBind(k).attributeName||'='||ptableBind(k).ids_value.count) ;
+                    end if;
+                    SYS.DBMS_SQL.BIND_VARIABLE(icursor,ptableBind(k).attributeName,ptableBind(k).ids_value);
+                elsif (   ptableBind(k).kind = c_timestamp ) then
+                    if ( setdbms_output) then
+                      dbms_output.put_line (ptableBind(k).kind||' timestamp / '||ptableBind(k).attributeName||'='||ptableBind(k).timestamp_value) ;
+                    end if;
+                    SYS.DBMS_SQL.BIND_VARIABLE(icursor,ptableBind(k).attributeName,ptableBind(k).timestamp_value);
+                elsif (  ptableBind(k).kind = c_date ) then
+                    if ( setdbms_output) then
+                      dbms_output.put_line (ptableBind(k).kind||' date / '||ptableBind(k).attributeName||'='||ptableBind(k).date_value) ;
+                    end if;
+                    SYS.DBMS_SQL.BIND_VARIABLE(icursor,ptableBind(k).attributeName,ptableBind(k).date_value);
+                elsif (  ptableBind(k).kind = c_raw ) then
+                    if ( setdbms_output) then
+                      dbms_output.put_line (ptableBind(k).kind||' raw / '||ptableBind(k).attributeName||'='||ptableBind(k).raw_value) ;
+                    end if;
+                    SYS.DBMS_SQL.BIND_VARIABLE(icursor,ptableBind(k).attributeName,ptableBind(k).raw_value);
+               else -- VARCHAR2 VALUES BY DEFAULT
+                    if ( setdbms_output) then
+                      dbms_output.put_line (ptableBind(k).kind||' varchar2 / '||ptableBind(k).attributeName||'='||ptableBind(k).varchar2_value) ;
+                    end if;
+                    SYS.DBMS_SQL.BIND_VARIABLE(icursor,ptableBind(k).attributeName,ptableBind(k).varchar2_value);
+                end if;
+             end if;
+         end loop;
+
+       -- ---------------------------
+       -- 3  GO : DO EXECUTE THE SQL !
+       -- ---------------------------
+        retvalue := DBMS_SQL.EXECUTE(icursor);
+dbms_output.put_line ('Coucou 5 : Dedans, retvalue=['|| retvalue ||']');
+
+
+       -- ----------------------------------------------------------------------------
+       -- 4  FOR A SELECT COMMAND, FETCH 1 RECORD... and GET ONLY THE FIRST COLUMN !
+       --    the column must be a number see previous DBMS_SQL.DEFINE_COLUMN definition
+       -- -----------------------------------------------------------------------------
+        if (bfetch) then
+dbms_output.put_line ('Coucou 6 : if (bfetch), DBMS_SQL.FETCH_ROWS(icursor) ');
+          IF DBMS_SQL.FETCH_ROWS(icursor)>0 THEN
+dbms_output.put_line ('Coucou 7 : if ()>0');
+             DBMS_SQL.COLUMN_VALUE(icursor, 1, retvalue);
+dbms_output.put_line ('Coucou 8 : retvalue=['||retvalue||']');
+             if ( setdbms_output) then
+                dbms_output.put_line ( 'fetch value   :'||retvalue);
+             end if;
+          end if;
+        end if;
+setdbms_output := false ;
+
+
+       -- ----------------------------------------------------------------------------
+       -- 5  CLOSE and RETUN
+       -- -----------------------------------------------------------------------------
+
+        DBMS_SQL.CLOSE_CURSOR(icursor);
+        return retvalue;
+
+        /*  exception
+             -- duplicate key is catched tio return a 0 value
+             when DUP_VAL_ON_INDEX THEN
+                 DBMS_SQL.CLOSE_CURSOR(icursor);
+                 return 0;*/
+
+      end;
+
+
+       /**
+           Reassign a varchar value to a timestamp value
+       **/
+       procedure  priv_reassign(  pjson in out nocopy JSON_ELEMENT_T ,pvalue in out nocopy t_bind ,sqlType in varchar2)
+       is
+       begin
+         if (pjson is not null) then
+          if ( setdbms_output) then
+            dbms_output.put_line ( 'reassign  value   :'||trim (both '"' from pjson.to_string)||' to '||sqltype);
+          end if;
+           if ( pjson.is_String() and substr(sqlType,1,3)='RAW') then
+              pvalue.kind :=c_raw;
+              pvalue.raw_value:=trim (both '"' from pjson.to_string);
+           elsif (substr(sqlType,1,4)='DATE') then
+              pvalue.kind :=c_date;
+              pvalue.date_value:=to_date(trim (both '"' from pjson.to_string),DATETIMEFORMAT );
+            elsif ( substr(sqltype,1,9)='TIMESTAMP') then
+              pvalue.kind :=c_timestamp;
+              pvalue.date_value:=to_date(trim (both '"' from pjson.to_string),TIMESTAMPFORMAT );
+
+           elsif  (pjson.is_String()) then
+              pvalue.kind :=c_varchar2;
+              pvalue.varchar2_value:=trim (both '"' from pjson.to_string);
+           elsif (pjson.is_Number()) then
+              pvalue.kind :=c_number;
+              pvalue.number_value:=pjson.to_number();
+          elsif (pjson.is_Date() ) then
+              pvalue.kind :=c_date;
+              pvalue.date_value:=pjson.to_date();
+          end if;
+       end if;
+       if ( sqltype='IDTABLE_T') then
+              pvalue.kind :=c_ids;
+              pvalue.ids_value :=priv_getIds(pjson);
+       end if;
+     end;
+
+
+      /**
+       MAIN private procedure for inserting an objet
+
+       DO THE UPDATE/INSERT OF A ENTITY BASED ON A JSON OBJECT
+
+      **/
+      function  priv_storeObject(  jo JSON_OBJECT_T, pobject in out nocopy P_OBJECTHANDLER.t_object, ptableBindParent in out nocopy ttable_bind, plevel integer default 0,   psaveHistory in boolean default true) return varchar2
+      is
+
+
+       ljson JSON_ELEMENT_T ;
+       ljsonObjectChild  JSON_OBJECT_T ;
+       ljsonChild  JSON_ARRAY_T;
+       luuid  raw(16);
+       ret varchar2(32000);
+       retc varchar2(32000);
+       lvalue t_bind;
+       ltableBind ttable_bind;
+       leffectivestartdate date;
+       leffectiveenddate date;
+       llastmodified timestamp;
+       retnum integer;
+       bvalueObject boolean;
+       lobjecttable  p_objecthandler.t_objecttable;
+
+       suffixEntity varchar2(255);
+       lexist integer;
+
+
+      begin
+
+        ---------------------------------------------
+        -- 1 INITIALIZATION (SQL COMMAND)
+        --------------------------------------------
+        ret:='{'||chr(10);
+
+        ltableBind:=ttable_bind();
+        bvalueObject:=false;
+        suffixEntity:=substr(pobject.info.name,instr(pobject.info.name,'_',-1)+1);
+        dbms_output.put_line('Storing entity '||pobject.info.name||' ('||suffixEntity||')');
+
+
+        ---------------------------------------------
+        -- 2 go through all object attribute (column)
+        --------------------------------------------
+        for i  in 1..pobject.attributes.count loop
+
+              ---------------------------------------------
+              -- 2.1 INIT BY COLUMN
+              ---------------------------------------------
+             -- initialization to null for current attribute value object
+             lvalue.kind :=1;
+             lvalue.date_value :=null;
+             lvalue.timestamp_value :=null;
+             lvalue.varchar2_value :=null;
+             lvalue.number_value :=null;
+             lvalue.raw_value :=null;
+             lvalue.ids_value :=null;
+
+             -- define current attribute
+             lvalue.attributename:=pobject.attributes(i).attributeName;
+
+
+              ------------------------------------------------------------------------
+              -- 2.2 GET VALUE FROM JSON and reassign to current value according type
+              ------------------------------------------------------------------------
+
+             -- get value from JSON according path specification
+             -- !!  THIS IS THE ONLY PLACE WHERE DATA IS RETRIEVED FROM CURRENT PARSED JSON !!
+              ljson := jo.get(lvalue.attributename);
+              if (ljson is not null ) then
+                 DBMS_OUTPUT.PUT_LINE(lvalue.attributename||'='||ljson.to_string);
+              else
+                 DBMS_OUTPUT.PUT_LINE(lvalue.attributename||'= NULL');
+
+              end if;
+              priv_reassign(ljson,lvalue,pobject.attributes(i).sqltype);
+
+             -- ---------------------------------------------------------------
+             -- 2.3 SPECIFIC DATA ASSIGNEMENt REGARDING COLUMN NAME
+             -- VERSION = MAX (VERSION) +1
+             -- UUID= random uuid
+             -----------------------------------------------------------------
+
+
+
+             -- uuid affectation if not done  ( only at rooit level not at subentity)
+             if ( pobject.attributes(i).attributename=p_objecthandler.ATTRIBUTE_NAME_UUID and plevel=0) then
+                if (lvalue.raw_value is null)  then
+                     lvalue.raw_value :=  sys_guid() ;
+                      lvalue.kind :=  c_raw;
+                     if ( setdbms_output) then
+                       dbms_output.PUT_LINE('generating new uuid ! :'|| lvalue.raw_value);
+                     end if;
+                end if;
+                luuid :=  lvalue.raw_value;
+
+             -- if version is current ---  WORKING WITH VALUE OBJET RECORD ( EFFECTIVESTARTDATE + EFFECTIVEEND DATE)
+             -- must define it with the max of previous
+             elsif (  pobject.attributes(i).attributename =(p_objecthandler.ATTRIBUTE_NAME_VERSION||suffixEntity)) then
+
+                   --get max version+1
+                   lvalue.number_value := priv_do_sql( p_entityhandler.getSqlBaseSelectMaxPrevious(pobject.info.name), ltableBind,true)+1;
+                   lvalue.kind:=c_number;
+                   bvalueObject:=true;
+
+
+            -- efffective start date will be defined using the max VALUE ( infinite date) if not defined
+            -- remember that it 's always better to define an artificial infinite value for performance rather than using a null value
+             elsif ( pobject.attributes(i).attributename=p_objecthandler.ATTRIBUTE_NAME_EFFECTIVEENDDATE ) then
+                  if (lvalue.date_value is null) then
+                      lvalue.kind :=c_date;
+                      lvalue.date_value := p_objecthandler.CONST_MAX_DATE;
+                  end if;
+                   leffectiveenddate:=    lvalue.date_value;
+              -- by usage  the statusccde is always defined as ACTIVE..
+              -- we can't override this value.
+              elsif ( pobject.attributes(i).attributename=p_objecthandler.ATTRIBUTE_NAME_STATUSCODE) then
+                    lvalue.kind := c_varchar2;
+                    lvalue.varchar2_value := p_objecthandler.STATUS_ACTIVE;
+              end if;
+
+             -- ---------------------------------------------------------------
+             --   2.5 WE MUST GET FROM PARENT DEFAULT VALUE IF STILL NOT ASSIGN
+             --   AT tHIS STAGE
+             -- ----------------------------------------------------------------
+
+             -- if value still is null.. trying to get a default value from parent bind ( like uuid, datecreated, lnxxx, versionxxxx etc...)
+             if (lvalue.kind = c_null or lvalue.kind is null) then
+                -- over all parent value
+
+                for k in 1..ptableBindParent.count loop
+                   --find a value ? --> get it !
+                   if (ptableBindParent(k).attributeName=lvalue.attributeName ) then
+                      lvalue := ptableBindParent(k);
+                      continue ;
+                   end if;
+                end loop;
+             end if;
+
+            if (lvalue.attributename=p_objecthandler.ATTRIBUTE_NAME_EFFECTIVESTARTDATE) then
+                if (  lvalue.date_value is null) then
+                     lvalue.date_value :=trunc(sysdate);
+                     lvalue.kind:=c_date;
+                end if;
+                leffectivestartdate:=    lvalue.date_value;
+            END IF;
+
+             -- ---------------------------------------------------------------
+             --   2.6 Prepare return value
+             --
+             -- ------------------------------------------------------------------
+
+            if (lvalue.kind!= c_null or pobject.attributes(i).PkNAME is  not null) then
+
+                  -- 2.6.1 prepare the return values of the storing by combining
+                  -- the UUID + Lastmodified
+                  if (lvalue.attributename=p_objecthandler.ATTRIBUTE_NAME_UUID) then
+                      ret :=ret||'    "'||p_objecthandler.ATTRIBUTE_NAME_UUID||'":"'||lvalue.raw_value||'"';
+
+                  elsif (lvalue.attributename=p_objecthandler.ATTRIBUTE_NAME_LASTMODIFIED) then
+                      ret :=ret||','||chr(13)||'    "lastmodified":"'||lvalue.timestamp_value||'"';
+                  end if;
+
+            end if;
+            priv_addtoBind(ltableBind,lvalue);
+        end loop ;
+
+
+        -------------------------------------------- ------------------------------------------------------------
+        -- 3 finish to prepare SQL Command
+        -- AND DO THE SQL !
+        -- for root entity                                            --> insert and update if akready exist
+        -- for child entity with Object Value mechanism (version) ,   --> update previous and insert new
+        -----------------------------------------------------------------------------------------------------------
+
+        lexist :=0;
+        if ( not bvalueObject) then
+          lexist := priv_do_sql( p_entityhandler.getSqlBaseSelectExist(pobject.info.name), ltableBind,true);
+dbms_output.put_line ('Coucou 2 : lexist=['||lexist||']');
+
+        end if;
+
+        --- insert or update ...
+        if ( lexist =0 or bvalueObject) then
+             if (bvalueObject) then
+                  --update previous version
+                   retnum:=priv_do_sql( p_entityhandler.getSqlBaseUpdatePrevious(pobject.info.name), ltableBind);
+             end if;
+             retnum:= priv_do_sql( p_entityhandler.getSqlbaseInsert(pobject.info.name), ltableBind);
+        else
+             retnum:= priv_do_sql( p_entityhandler.getSqlbaseUpdate(pobject.info.name), ltableBind);
+        end if;
+
+
+        -------------------------------------------- ------------------------------------------------------------
+        -- 4 NOW WE CAN GO TO CHILD ENTITY
+        -----------------------------------------------------------------------------------------------------------
+
+        --copy all bind values from parent to current
+       /* for k  in 1..ptableBindParent.count loop
+            ltableBind.extend(1);
+            ltableBind(ltableBind.count):=ptableBindParent(k);
+         end loop;
+        */
+        -- go through child subentity
+        P_OBJECTHANDLER.getChildObject( pObject ,lobjecttable  ) ;
+
+        for k in 1..lobjecttable.count loop
+
+             ljson := jo.get(lobjecttable(k).info.name);
+             if (ljson is not null ) then
+
+             --must be an array or an object
+             if ( ljson.is_Object()) then
+                  retc := priv_storeObject(TREAT ( ljson  AS JSON_OBJECT_T), lobjecttable(k) ,ltableBind, plevel+1 );
+
+             -- an array. is a list of object
+             elsif ( ljson.is_Array()) then
+                    ljsonChild:=TREAT (ljson AS JSON_ARRAY_T);
+
+                for r in 0..ljsonChild.get_size()-1 loop
+
+                    suffixEntity:=substr(lobjecttable(k).info.name,instr(lobjecttable(k).info.name,'_',-1)+1);
+
+                    -- provide lnXXXX default values (100, 200, 300,etc.)
+                    priv_addNumbertoBind(ltableBind, p_objectHandler.ATTRIBUTE_NAME_LN||suffixEntity,(r+1)*100);
+
+                    -- go ! store the object
+                    ljsonObjectChild:=TREAT (ljsonChild.get(r) AS JSON_OBJECT_T);
+                    retc := priv_storeObject(ljsonObjectChild, lobjecttable(k),ltableBind,plevel+1);
+
+                end loop;
+            end if;
+            end if;
+        end loop;
+
+        -------------------------------------------- ------------------------------------------------------------
+        -- 5 let's do LINK
+        -----------------------------------------------------------------------------------------------------------
+        if(plevel=0) then
+
+            ljson := jo.get(p_objectHandler.ATTRIBUTE_LINK);
+            if ( ljson is not null AND  ljson.is_Array() ) then
+                ljsonChild:=TREAT (ljson AS JSON_ARRAY_T);
+              for k in 0..ljsonChild.get_size()-1 loop
+                    -- go ! store the object
+                    ljsonObjectChild:=TREAT (ljsonChild.get(k) AS JSON_OBJECT_T);
+                    priv_storelink(luuid,pobject.info.code, ljsonObjectChild,leffectivestartdate,leffectiveenddate);
+              end loop;
+            end if;
+        end if;
+
+
+        -------------------------------------------- ------------------------------------------------------------
+        -- 6 and FINALLY the HISTORY IS SAVED
+        -----------------------------------------------------------------------------------------------------------
+
+         if(plevel=0 and psaveHistory) then
+           saveHistory ( pobject.info.name, luuid );
+        end if;
+        ret:=ret||chr(13)||'}';
+        return ret;
+      end;
+
+
+      /**
+      STORE AN OBJECT (or A COLLECTION of entity) IN THE DB
+
+      Regardless uuid presence, the ENTITY wil be by default always created ... or updated if already exist
+
+      Object type does not to be provided if it's collection
+      */
+      function  storeObject(jsonObject in out nocopy clob,pobjectnameorcode in varchar2  default null,psaveHistory in integer default 1) return clob
+      is
+
+       lretclob clob;
+       lvalue t_bind;
+
+        jo          JSON_OBJECT_T;
+        je          JSON_ELEMENT_T;
+        ja          JSON_ARRAY_T;
+        keys        JSON_KEY_LIST;
+        ljsonObjectChild JSON_OBJECT_T;
+
+       lobject P_OBJECTHANDLER.t_object;
+
+       llastmodified timestamp;
+       ltableBind ttable_bind;
+       lposSep integer;
+       ltype varchar2(255);
+       lname varchar2(255);
+       lbSaveHisto boolean ;
+
+      begin
+
+
+        ------------------------
+         -- 1 Initialization
+         -------------------------
+
+
+         SAVEPOINT  start_store;
+
+         ltableBind:=ttable_bind();
+         if (psaveHistory>1) then
+              lbSaveHisto:=true;
+         else
+               lbSaveHisto:=false;
+         end if;
+         -- clob return initialization
+         dbms_lob.createtemporary(lretclob,false,dbms_lob.CALL);
+
+         llastmodified:=CURRENT_TIMESTAMP; --createddate
+
+          -- define created date  to lastmodified (but just the date without hour)
+         priv_addDatetoBind(ltableBind,p_objectHandler.ATTRIBUTE_NAME_CREATEDDATE, llastmodified);
+             -- define created date  to lastmodified (but just the date without hour)
+         priv_addDatetoBind(ltableBind,'statusdate', llastmodified);
+
+         -- define lastmodified (auto convert timestamp to char)
+         priv_addTimestamptoBind(ltableBind,p_objectHandler.ATTRIBUTE_NAME_LASTMODIFIED, llastmodified);
+
+         -- define effectivestartdate to lastmodified (but just the date without hour)
+         priv_addDatetoBind(ltableBind,p_objectHandler.ATTRIBUTE_NAME_EFFECTIVESTARTDATE, trunc(llastmodified));
+
+         -- define sa_label
+         priv_addVarchartoBind(ltableBind,p_objectHandler.ATTRIBUTE_NAME_SA_LABEL, '');
+
+
+           ------------------------
+         -- 2 Do the JSON PARSING
+         -------------------------
+         jo:=JSON_OBJECT_T.parse(jsonObject);
+
+         keys := jo.get_keys;
+
+
+         ---------------------------------------
+         -- 3 store entity .. according object !
+         -- single or multiple
+         -----------------------------------------
+          FOR li IN 1..keys.COUNT LOOP
+
+            lposSep:=instr(keys(li),'.');
+
+            --only one single store
+            if  (lposSep =0 and li=1) then
+                if ( pobjectnameorcode is null) then
+                  raise_application_error(-20102,'Object Name (or code) must be provided for a single json Object');
+                end if;
+
+                --FIND THE HANDLER
+                P_OBJECTHANDLER.getObject(p_objectHandler.TYPE_ENTITY,pobjectnameorcode,lobject);
+
+                -- store the object
+                dbms_lob.append(lretclob,priv_storeObject(jo,lobject ,ltableBind,0,lbSaveHisto));
+                return lretclob;
+
+
+            -- multiple object store (array)
+            elsif lposSep!=0 then
+
+               --split then name
+               je :=  jo.get(keys(li));
+               ltype:=trim (both '"' from substr( keys(li),1,lposSep-1));
+               lname:=trim (both '"' from substr( keys(li),lposSep+1));
+
+               P_OBJECTHANDLER.getObject(ltype,lname,lobject);
+               -- comma separation
+                if (li >1) then
+                  dbms_lob.append(lretclob,','||chr(13));
+                else
+                  dbms_lob.append(lretclob,'{');
+                end if;
+               dbms_lob.append(lretclob,keys(li));
+               dbms_lob.append(lretclob,':[');
+
+               for r in 0..je.get_size-1 loop
+
+                 -- comma separation
+                  if (r >1) then
+                    dbms_lob.append(lretclob,','||chr(13));
+                  end if;
+
+                  ja := TREAT (je AS JSON_ARRAY_T );
+                  ljsonObjectChild:=TREAT (ja.get(r) AS JSON_OBJECT_T );
+
+                  -- insert the object
+                  dbms_lob.append(lretclob,priv_storeObject(ljsonObjectChild,lobject,ltableBind,0,lbSaveHisto ));
+               end loop;
+               dbms_lob.append(lretclob,']');
+             end if;
+          end loop;
+          dbms_lob.append(lretclob,'}');
+          return lretclob;
+
+
+        exception
+          when others then
+             dbms_output.put_line('ERROR '||SQLCODE||' :'||SQLERRM);
+             rollback to savepoint start_store;
+             raise;
+      end;
+
+
+END p_entityservice;
+
+create or replace
+PACKAGE                  p_linkservice IS
+  /** package for ENTITY Manipulation **/
+
+   TYPE t_json IS record
+   (
+      jsonValue clob,
+      jsonHash varchar2(64)
+   );
+    CONST_MAX_DATE constant DATE :=TO_DATE('01/01/3000','DD/MM/YYYY');
+
+
+     function storeLink( pobjectnameorcode in varchar2
+                       , pfromOt in varchar2, pfromUuid in RAW
+                       , ptoOt varchar2
+                       , ptoUuid in RAW
+                       , pupdatePrevious in integer default 1
+                       , peffectivestartdate in DATE default SYSDATE
+                       , peffectiveenddate in date default CONST_MAX_DATE
+                       ) return varchar2;
+    -- procedure storeLink( puuid in out raw, pROLE in VARCHAR2,  pfromOt in varchar2, pfromUuid in RAW, pfromRole in varchar2, ptoOt varchar2, ptoUuid in RAW,  ptoRole in varchar2,  pupdatePrevious in integer default 1, peffectivestartdate in DATE default SYSDATE, peffectiveenddate in date default CONST_MAX_DATE);
+
+
+END p_linkservice;
+
+create or replace
+PACKAGE BODY                  p_linkservice  IS
+
+   procedure priv_storeLink( puuid in out RAW, pROLE in VARCHAR2,  pfromOt in varchar2, pfromUuid in RAW, pfromRole in varchar2, ptoOt varchar2, ptoUuid in RAW,  ptoRole in varchar2,  pupdatePrevious in integer default 1, peffectivestartdate in DATE default SYSDATE, peffectiveenddate in date default CONST_MAX_DATE)
+
+    is
+
+    begin
+       if (puuid is null) then
+            puuid:=sys_guid();
+       end if;
+       --update previous one
+       if ( pupdatePrevious=1) then
+         update R_LINKER C
+           set effectiveenddate = peffectivestartdate
+              where c.effectiveenddate=CONST_MAX_DATE
+               and c.rolecode=prole
+               and C.uuid in     (select UUID from R_LINKER_DETAIL A where
+                     A.LINKED_OBJECTTYPE=pfromOt
+                     and a.LINKED_UUID=pfromUuid
+                     and a.LINKED_ROLEcode=pfromRole);
+       end if;
+
+
+       -- insert the new link
+        insert into R_LINKER (UUID,ROLEcode,STATUScode,EFFECTIVESTARTDATE,EFFECTIVEENDDATE)
+              values  (puuid,pROLE,'A',peffectivestartdate,peffectiveenddate);
+
+        insert into R_LINKER_DETAIL (UUID,LNdetail,LINKED_UUID,LINKED_OBJECTTYPE,LINKED_ROLEcode)
+              values  (puuid,1,pfromUuid,pfromOt,pfromRole);
+
+        insert into R_LINKER_DETAIL (UUID,LNdetail,LINKED_UUID,LINKED_OBJECTTYPE,LINKED_ROLEcode)
+              values  (puuid,2,ptoUuid,ptoOt,ptoRole);
+
+    end;
+
+
+ function storeLink(   pobjectnameorcode in varchar2 , pfromOt in varchar2, pfromUuid in RAW,  ptoOt varchar2, ptoUuid in RAW,  pupdatePrevious in integer default 1, peffectivestartdate in DATE default SYSDATE, peffectiveenddate in date default CONST_MAX_DATE) return varchar2
+
+    is
+
+      lobject P_OBJECTHANDLER.t_object;
+      lAllowedfromObjectType varchar2(255);
+      lAllowedToOnjectType varchar2(255);
+      lRolefromObjectType  varchar2(32);
+      lRoleToOnjectType  varchar2(32);
+       bInversedLink boolean;
+       luuid RAW(16);
+       ret varchar2(32000);
+       lobjectfrom P_OBJECTHANDLER.t_object;
+      lobjectto  P_OBJECTHANDLER.t_object;
+    begin
+
+       ret:='{';
+       bInversedLink:=false;
+        --get the object name based on the code (ex :INS insured)
+       P_OBJECTHANDLER.getObject(P_OBJECTHANDLER.TYPE_LINK,pobjectnameorcode,lobject);
+       P_OBJECTHANDLER.getObject(P_OBJECTHANDLER.TYPE_ENTITY,pfromOt,lobjectfrom);
+
+       P_OBJECTHANDLER.getObject(P_OBJECTHANDLER.TYPE_ENTITY,ptoOt,lobjectto);
+
+
+       lAllowedfromObjectType := P_OBJECTHANDLER.getParameter(lobject,'from_entity','');
+       lAllowedToOnjectType :=P_OBJECTHANDLER.getParameter(lobject,'to_entity','');
+      if ( instr(lAllowedfromObjectType, lobjectfrom.info.code)=0) then
+           if (instr(lAllowedfromObjectType, lobjectto.info.code)=0) then
+              raise_application_error('-20201','SOURCE Object type object "'||pfromOt||'" is incorrect for link "'||pobjectnameorcode||'" allowed SOURCE type object is "'|| lAllowedfromObjectType||'"');
+           end if;
+           bInversedLink:=true;
+       end if;
+
+       if (not  bInversedLink) then
+         if (  instr(lAllowedToOnjectType, lobjectto.info.code)=0) then
+            raise_application_error('-20202','TARGET Object  type object "'||ptoOt||'" is incorrect for link "'||pobjectnameorcode||'" allowed TARGET type object is "'|| lAllowedToOnjectType||'"');
+         end if;
+       else
+        if (  instr(lAllowedToOnjectType, lobjectfrom.info.code)=0) then
+            raise_application_error('-20202','TARGET Object  type object "'||ptoOt||'" is incorrect for link "'||pobjectnameorcode||'" allowed TARGET type object is "'|| lAllowedToOnjectType||'"');
+         end if;
+      end if;
+       lRolefromObjectType := P_OBJECTHANDLER.getParameter(lobject,'from_role','');
+       lRoleToOnjectType :=P_OBJECTHANDLER.getParameter(lobject,'to_role','');
+       if (bInversedLink) then
+         priv_storeLink     ( luuid,lobject.info.code,lobjectto.info.code,ptoUuid,lRolefromObjectType,lobjectfrom.info.code,pfromUuid,lRoleToOnjectType,pupdatePrevious,peffectivestartdate,peffectiveenddate);
+       else
+         priv_storeLink     ( luuid,lobject.info.code,lobjectfrom.info.code,pfromUuid,lRolefromObjectType,lobjectto.info.code,ptoUuid,lRoleToOnjectType,pupdatePrevious,peffectivestartdate,peffectiveenddate);
+       end if;
+
+   ret:=ret||' "uuid":"'||luuid||'"';
+   ret:=ret||'}';
+   return ret;
+     end;
+ end;
+ 
+ create or replace
+PACKAGE                  p_objecthandler IS
+  /**
+
+  Package  de manipulation des meta données d'une entité et des liens
+
+  10/2017
+
+  **/
+     STATUS_ACTIVE  constant varchar2(1) :='A';
+     STATUS_INVALID  constant varchar2(1) :='I';
+     STATUS_HISTORICAL  constant varchar2(1) :='H';
+     CONST_MAX_DATE constant DATE :=TO_DATE('01/01/3000','DD/MM/YYYY');
+
+
+   -- define type
+     TYPE_ENTITY constant varchar2(10) :='entity';
+     TYPE_LINK constant varchar2(10) :='link';
+     TYPE_EVENT constant varchar2(10) :='event';
+     TYPE_NOMENCLATURE constant varchar2(15) :='nomenclature';
+     TYPE_AGGREGATED constant varchar2(15) :='aggregated';
+
+
+     ATTRIBUTE_NAME_UUID constant varchar2(4) :='uuid';
+     ATTRIBUTE_NAME_LASTMODIFIED constant varchar2(12) :='lastmodified';
+     ATTRIBUTE_NAME_VERSION constant varchar2(7) :='version';
+     ATTRIBUTE_NAME_CREATEDDATE constant varchar2(11) :='createddate';
+     ATTRIBUTE_NAME_EFFECTIVESTARTDATE constant varchar2(20) :='effectivestartdate';
+     ATTRIBUTE_NAME_EFFECTIVEENDDATE constant varchar2(20) :='effectiveenddate';
+     ATTRIBUTE_NAME_LN constant varchar2(2) :='ln';
+     ATTRIBUTE_NAME_STATUSCODE constant varchar2(12) :='statuscode';
+     ATTRIBUTE_NAME_SA_LABEL constant varchar2(12) :='sa_label';
+     ATTRIBUTE_LINK constant varchar2(12) := TYPE_LINK;
+
+
+     -- scope for search : default
+     SCOPE_ALL constant varchar2(3) :='all';
+
+        -- scope for search : root
+     SCOPE_ROOT constant varchar2(4) :='root';
+
+      -- scope for search meta and extra info
+     SCOPE_EXTRADATA constant varchar2(10) :='extradata';
+
+      -- scope for search meta and extra info
+     SCOPE_HISTORY constant varchar2(10) :='history';
+
+     -- scope for search : specific link
+     SCOPE_LINK constant varchar2(6) :='link';
+
+     --default table
+     DEFAULT_EXTRADATA_TABLE  constant varchar2(100) :='own_07755_common.x_object_extradata';
+     DEFAULT_HISTORY_TABLE  constant varchar2(100) :='own_07755_common.h_object_history';
+
+     -- attribute type
+     TYPE t_attribute IS RECORD
+     (  attributeName varchar2(255),
+        attributeType varchar2(255),
+        sqLName   varchar2(255),
+        sqLType   varchar2(255),
+        sqllength integer ,
+        PkNAME varchar2(255)  );
+
+       -- map table object type for refence
+    type t_objecttable_map is table of integer index by varchar2(255);
+
+    type t_selectbaseMap is table of varchar2(32000) index by varchar2(255);
+
+    -- attribute list type
+    type t_attributetable is table of t_attribute;
+
+    -- object type
+    TYPE t_object IS record
+    (  --  name varchar2(255),
+          info m_info_dh_object%ROWTYPE,
+          parameter kvTable_t,
+          attributes t_attributetable,
+          parent  varchar2(255),
+          root varchar2(255) ,
+          sqlBaseSelect t_selectbaseMap,
+          sqlbaseInsert varchar2(32000),
+          sqlbaseUpdate varchar2(32000),
+          sqlbaseUpdatePrevious varchar2(32000),
+          sqlbaseSelectMaxPrevious varchar2(32000),
+          sqlbaseSelectExist varchar2(32000));
+
+    -- object list type
+    type t_objecttable is table of t_object;
+
+    -- all entities list table ( as a static variable)
+    listAllObjectTable t_objecttable default null;
+    mapAllObjectTable t_objecttable_map;
+
+     -- reload all static  definition
+     procedure reloadAll ;
+
+     -- load all static entities definition1
+     procedure loadAllMain;
+
+     -- load all child subentities assocoiated with a main object in a single list
+     --( not a recursive approach due to oracle limitation in type definiton : no circular acccepted)
+     function  loadChild( pobjectSchema in varchar2, pobjectType in varchar2,pobjectName in varchar2,pobjectSqlName in varchar2  ) return t_objecttable;
+
+     -- load all attributes associated with a object (column definition)
+     function  loadAttributes( pobjectSchema in varchar2, pobjectType in varchar2,pobjectName in varchar2,pSqlName in varchar2 ) return t_attributetable;
+
+     -- get a object definition based on its code or is name (PER or person for example)
+     procedure getObject (pobjectType in varchar2, pObjectNameOrCode in varchar2, p_object out nocopy t_object) ;
+     function  getIdxObject (pobjectType in varchar2,pObjectNameOrCode in varchar2)  return integer ;
+
+     -- get a list of all subobject definition associated with an object.
+     procedure getChildObject( pObject in out  nocopy t_object, pobjecttable out nocopy t_objecttable ) ;
+
+
+     -- get one parameter associated with an object ( key / value approach)
+     function  getParameter ( pObject  in out nocopy t_object, pKey in varchar2,pDefaultValue in varchar2 default null) return varchar2 ;
+
+
+       -- get the table (SQL) name associated with an object
+     function  getSqlFullTableName(pObject  in out nocopy t_object) return varchar2;
+     function  getSqlSpecificTable( pobject in out nocopy  t_object, specificKey in varchar2, defaultTable in varchar2 ) return varchar2 ;
+      function getSqlBaseExtraData(pobject in out nocopy  t_object)  return varchar2;
+      function getSqlBaseHistory(pobject in out nocopy  t_object)  return varchar2 ;
+END p_objecthandler;
+
+create or replace
+PACKAGE BODY                  p_objecthandler  IS
+
+
+   -- reload all static  definition
+  procedure reloadAll is
+  begin
+    listAllObjectTable := null;
+  end;
+
+  --load all main entities
+  procedure loadAllMain is
+
+    cursor c1 is select * from m_info_dh_object  order by type,name ;
+    lobject t_object;
+    lchildobjectTable t_objecttable;
+    idx integer;
+    countMain integer;
+  begin
+    listAllObjectTable := t_objecttable();
+
+    for r1 in c1 loop
+        dbms_output.put_line( 'object '||r1.type||'.'||r1.name||' loaded');
+        listAllObjectTable.extend(1);
+        idx:=listAllObjectTable.count();
+        mapAllObjectTable(r1.type||'.'||r1.code):=idx;
+        mapAllObjectTable(r1.type||'.'||r1.name):=idx;
+        listAllObjectTable(idx).info:=r1;
+        listAllObjectTable(idx).root:=r1.name;
+        listAllObjectTable(idx).parent:=null;
+        listAllObjectTable(idx).attributes:=loadAttributes(r1.sqlschema,r1.type,r1.name,r1.sqlname);
+        --listAllObjectTable(idx).sqlbaseselect:=t_selectbaseMap();
+    end loop;
+
+    -- loading child object
+    countMain:=listAllObjectTable.count;
+    for idx in 1..countMain loop
+
+        lchildobjectTable := loadChild(listAllObjectTable(idx).info.sqlschema,listAllObjectTable(idx).info.type,listAllObjectTable(idx).info.name,listAllObjectTable(idx).info.sqlname);
+        for idx2 in 1..lchildobjectTable.count loop
+              listAllObjectTable.extend(1);
+              dbms_output.put_line( 'sub object '||lchildobjectTable(idx2).info.type||'.'||lchildobjectTable(idx2).info.name||' loaded');
+              mapAllObjectTable(lchildobjectTable(idx2).info.type||'.'||lchildobjectTable(idx2).info.name):=listAllObjectTable.count;
+              listAllObjectTable( listAllObjectTable.count):=lchildobjectTable(idx2);
+        end loop;
+    end loop;
+  end;
+
+  /**
+
+  Load all child object from a specific parent object
+
+  */
+  function  loadChild( pobjectSchema in varchar2,  pobjectType in varchar2,pobjectName in varchar2,pobjectSqlName in varchar2 ) return t_objecttable is
+
+    llevel integer;
+    lchildobjectTable t_objecttable;
+
+     lobject t_object;
+     parentObject varchar2(255) :=null;
+     previousObject varchar2(255) :=null;
+     idx integer :=0;
+     cursor cchild  is
+           select substr(table_name,3) as objectName, table_name as sqltable from all_tables tc where owner=upper(pobjectSchema) and table_name like upper(pobjectSqlName)||'\_%'  ESCAPE '\';
+
+    begin
+        llevel:=1;
+        lchildobjectTable :=t_objecttable();
+        for rchild in cchild loop
+            parentObject:=pobjectName;
+            lobject.info.name:=lower(rchild.objectName);
+             if (previousObject is not null and length(previousObject) <length( lobject.info.name)) then
+                if (substr(lobject.info.name,1,length(previousObject))= previousObject) then
+                    parentObject := previousObject;
+                    llevel:=llevel+1;
+                end if;
+            end if;
+
+            lchildobjectTable.extend(1);
+            lobject.info.sqlschema:=pobjectSchema;
+            lobject.info.sqlname:=rchild.sqltable;
+            lobject.root:=pobjectName;
+            lobject.info.type:=pobjectType;
+            lobject.parent:=parentObject ;
+            lobject.attributes:=loadAttributes(pobjectSchema,lobject.info.type,lobject.info.name,lobject.info.sqlname);
+            lchildobjectTable(lchildobjectTable.count()):=lobject;
+            previousObject:=lobject.info.name;
+        end loop;
+
+     return lchildobjectTable;
+    end;
+
+
+  function  loadAttributes( pobjectSchema in varchar2, pobjectType in varchar2,pobjectName in varchar2 ,pSqlName in varchar2) return t_attributetable is
+
+    cursor cattribute  is select * from v_getListAttribute where schemaname =upper(pobjectSchema) and sqlname = upper(pSqlName) ;
+    lattributetable t_attributetable;
+    lattribute t_attribute;
+    idx integer :=0;
+
+  begin
+
+        lattributetable:=t_attributetable();
+        for rattribute in cattribute loop
+              idx:=idx+1;
+              lattribute.attributeName:=lower(rattribute.ATTRIBUTENAME);
+              lattribute.attributeType:=rattribute.ATTRIBUTETYPE;
+              lattribute.sqLName:=rattribute.ATTRIBUTENAME;
+              lattribute.sqLType:=rattribute.ATTRIBUTETYPE;
+              lattribute.sqllength:=rattribute.ATTRIBUTELENGTH;
+              lattribute.pkname:=rattribute.PK_CONSTRAINT_NAME;
+              lattributetable.extend(1);
+              lattributetable(idx) := lattribute;
+        end loop;
+
+     return lattributetable;
+  end;
+
+
+  /**
+    Get en object handler based on the name of the object or the code ( PER, POL,CLA... or person, policy, claim)
+  **/
+  procedure getObject (pobjectType in varchar2,pObjectNameOrCode in varchar2,p_object out nocopy t_object)  is
+    idx integer default 0;
+  begin
+
+    idx := getIdxObject(pobjectType,pObjectNameOrCode);
+
+    p_object := listAllObjectTable(idx);
+
+    return ;
+
+  end;
+
+
+  function getIdxObject (pobjectType in varchar2,pObjectNameOrCode in varchar2)  return integer is
+
+  begin
+    -- find the object handler in the static list
+    -- but first assume to load it from db if not already done
+    if (listAllObjectTable is null) then
+        loadAllMain;
+    end if;
+
+    --search in map
+    If (not mapAllObjectTable.EXISTS(pobjectType||'.'||pObjectNameOrCode)) then
+      raise_application_error(-20003,'Object type "'||pobjectType||'.'||pObjectNameOrCode||'" does not exist in list size '||mapAllObjectTable.count);
+    end if;
+    return  mapAllObjectTable(pobjectType||'.'||pObjectNameOrCode);
+  end;
+
+   /**
+      get the list of all direct child entities associated with a object
+   **/
+   procedure getChildObject( pObject in out  nocopy t_object, pobjecttable out nocopy t_objecttable ) is
+
+   begin
+    if (listAllObjectTable is null) then
+        loadAllMain;
+    end if;
+      pobjecttable :=t_objecttable();
+      for idx in 1..listAllObjectTable.count loop
+         if (listAllObjectTable(idx).parent = pObject.info.name) then
+            pobjecttable.extend(1);
+            pobjecttable(pobjecttable.count()) := listAllObjectTable(idx);
+         end if;
+      end loop;
+   end;
+
+  /**
+      get parameter associated with a object
+  **/
+  function  getParameter ( pObject  in out nocopy t_object,pKey in varchar2,pDefaultValue in varchar2 default null) return varchar2
+  is
+    lvalue varchar2(4000);
+  begin
+      for idx in 1..pObject.info.parameter.count  loop
+          --find it !
+
+          if (pObject.info.parameter(idx).key= pKey) then
+             return pObject.info.parameter(idx).value;
+          end if ;
+     end loop;
+      --not find ? return default value
+      return pDefaultValue ;
+  end;
+
+  /**
+      get SQLTABLE fully qualifies using schema.table model  associated with a object
+  **/
+  function  getSqlFullTableName(pObject  in out  nocopy t_object) return varchar2 is
+
+  begin
+      return upper(pObject.info.sqlschema)||'.'||upper(pObject.info.sqlname);
+  end;
+
+  /**
+  Return SQL block command for a link
+  pmaxOffset : max number of record to get , use 0 for all
+
+  **/
+
+  function  getSqlSpecificTable( pobject in out nocopy  t_object, specificKey in varchar2, defaultTable in varchar2 ) return varchar2 is
+
+  sqlTable varchar2(255);
+  begin
+      sqlTable:= getParameter(pobject,'table_'||specificKey,'UNDEFINED');
+      if ( sqlTable='UNDEFINED') then
+           sqlTable:=defaultTable;
+      else
+        if ( sqlTable is not null) then
+              sqlTable:=pobject.info.sqlschema||'.'||sqlTable;
+        end if;
+      end if;
+      return sqlTable;
+  end;
+
+
+  /**
+
+  Return SQL block command for extradata
+
+  **/
+  function getSqlBaseExtraData(pobject in out nocopy  t_object)  return varchar2 is
+
+  BEGIN
+      return ' SELECT kv.* from '||getSqlSpecificTable(pobject,SCOPE_EXTRADATA,DEFAULT_EXTRADATA_TABLE)||' e ,table(e.kvtable) kv where e.uuid=c0.uuid ';
+  END;
+
+
+  /**
+
+  Return SQL block command for history
+
+  **/
+  function getSqlBaseHistory(pobject in out nocopy  t_object)  return varchar2 is
+
+  BEGIN
+      return   ' SELECT h.* from '||getSqlSpecificTable(pobject,SCOPE_HISTORY,DEFAULT_HISTORY_TABLE)||' h where h.uuid=c0.uuid ';
+  END;
+
+
+
+end;
+
+create or replace
+PACKAGE                  p_random
+IS
+  namest CONSTANT VARCHAR2(255):= '..lexegezacebisousesarmaindireaeratenberalavetiedorquanteisrion';
+  FUNCTION getFirstName(
+      pnbpair INTEGER DEFAULT 4)
+    RETURN VARCHAR2;
+  FUNCTION getName(
+      pnbpair INTEGER DEFAULT 5)
+    RETURN VARCHAR2;
+  FUNCTION getBirthDate(
+      pminAge IN INTEGER DEFAULT 18,
+      pmaxAge IN INTEGER DEFAULT 90)
+    RETURN DATE;
+  FUNCTION getAmount(
+      pmin IN REAL DEFAULT 0,
+      pmax IN REAL DEFAULT 100000)
+    RETURN REAL;
+  PROCEDURE getCreditCard(
+      pissuer OUT VARCHAR2,
+      pcarnumber OUT VARCHAR2,
+      pcardSN OUT VARCHAR2 ,
+      pcardExpiredate OUT DATE );
+  FUNCTION getYesOrNo(
+      pvalue IN INTEGER)
+    RETURN VARCHAR2;
+END;
+
+create or replace
+PACKAGE body                  p_random
+IS
+  FUNCTION getYesOrNo(
+      pvalue IN INTEGER)
+    RETURN VARCHAR2 is
+    BEGIN
+      IF(
+          pvalue=1) THEN
+        RETURN 'Y';
+      END IF;
+      RETURN 'N';
+    END;
+    FUNCTION priv_getString(
+        pnbpair INTEGER DEFAULT 4)
+      RETURN VARCHAR2
+    IS
+      pair INTEGER;
+      name VARCHAR2(255);
+    BEGIN
+      name := '';
+      FOR nb IN 1..pnbpair
+      LOOP
+        pair := 2 * floor(SYS.DBMS_RANDOM.VALUE(0,1) * (LENGTH(namest) / 2));
+        name := name||SUBSTR(namest,pair, 2);
+      END LOOP;
+      name := REPLACE(name,'.', '');
+      RETURN name;
+    END;
+  FUNCTION getFirstName(
+      pnbpair INTEGER DEFAULT 4)
+    RETURN VARCHAR2
+  IS
+  BEGIN
+    RETURN priv_getString( pnbpair);
+  END ;
+  FUNCTION getName(
+      pnbpair INTEGER DEFAULT 5)
+    RETURN VARCHAR2
+  IS
+  BEGIN
+    RETURN priv_getString( pnbpair);
+  END ;
+  FUNCTION getBirthDate(
+      pminAge IN INTEGER DEFAULT 18,
+      pmaxAge IN INTEGER DEFAULT 90)
+    RETURN DATE
+  IS
+  BEGIN
+    RETURN TRUNC( sysdate - TRUNC( dbms_random.value (pminAge*365, pmaxAge*365)));
+  END;
+  FUNCTION getAmount(
+      pmin IN REAL DEFAULT 0,
+      pmax IN REAL DEFAULT 100000)
+    RETURN REAL
+  IS
+  BEGIN
+    RETURN TRUNC( dbms_random.value (pmin, pmax)*100)/100;
+  END;
+  PROCEDURE getCreditCard(
+      pissuer OUT VARCHAR2,
+      pcarnumber OUT VARCHAR2,
+      pcardSN OUT VARCHAR2 ,
+      pcardExpiredate OUT DATE )
+  IS
+    lcardissuer INTEGER;
+  BEGIN
+    pcardExpiredate    := TRUNC( sysdate- TRUNC(dbms_random.value (100,400)));
+    lcardissuer        := TRUNC(dbms_random.value(1,100));
+    pcardSN            := TO_CHAR(TRUNC(dbms_random.value(1,999),'099'));
+    IF ( lcardissuer   <=60) THEN
+      pissuer          :='Visa';
+      pcarnumber       :='4'|| TO_CHAR(TRUNC(dbms_random.value(1,9999999999999999)),'099G9999G99999G9999');
+    elsif ( lcardissuer<=80) THEN
+      pissuer          :='MasterCard';
+      pcarnumber       :='55'|| TO_CHAR(TRUNC(dbms_random.value(1,999999999999999)),'09G9999G99999G9999');
+    elsif ( lcardissuer<=90) THEN
+      pissuer          :='American Express';
+      pcarnumber       :='34'|| TO_CHAR(TRUNC(dbms_random.value(1,99999999999999)),'09G9999G99999G999');
+    elsif ( lcardissuer<=98) THEN
+      pissuer          :='Diner''s Club';
+      pcarnumber       :='3'||TO_CHAR(TRUNC(dbms_random.value(1,99999999999999)),'099G9999G99999G99');
+    ELSE
+      pissuer   :='Discover';
+      pcarnumber:='6'|| TO_CHAR(TRUNC(dbms_random.value(1,9999999999999999)),'099G9999G99999G9999');
+    END IF;
+    pcarnumber:=REPLACE(pcarnumber,' ','-');
+  END;
+
+END;
+
+create or replace
+package                  p_securityservice is
+
+  -- Current USER  ( unique iuser info)
+  DATAHUB_USER constant varchar2(20)    :='USER';
+
+
+  -- current application ID
+  DATAHUB_APPLICATION constant varchar2(20) :='APPLICATION';
+
+  -- fonction usage for current request  / activity
+  DATAHUB_FONCTION constant varchar2(20) :='FUNCTION';
+
+  -- security level / group / compatment
+  DATAHUB_SECURITY_LEVEL constant varchar2(20) :='SECURITY_LEVEL';
+  DATAHUB_SECURITY_COMPARTMENT constant varchar2(20) :='SECURITY_COMPARTMENT';
+  DATAHUB_SECURITY_GROUP constant varchar2(20) :='SECURITY_GROUP';
+
+  procedure setCurrentContext(pcontext in varchar2, papplication IN VARCHAR2, pfonction IN VARCHAR2, puser IN VARCHAR2, plevel IN varchar2, pcompartment in varchar2,pgroup IN VARCHAR2);
+  procedure setCurrentContextUndefined(pcontext in varchar2) ;
+
+  procedure clearCurrentContext(pcontext in varchar2);
+  function  getCurrentCompartment(pcontext in varchar2) return varchar2 ;
+  function  hasCompartment( pcontext in varchar2,pcompartment in varchar2 ) return integer ;
+end p_securityservice;
+
+create or replace
+package body                  p_securityservice is
+
+
+  procedure setCurrentContextUndefined(pcontext in varchar2)
+  is
+  begin
+      setCurrentContext(pcontext,'undefined','undefined','undefined','P','','');
+  end setCurrentContextUndefined;
+
+  procedure setCurrentContext(pcontext in varchar2, papplication IN VARCHAR2, pfonction IN VARCHAR2, puser IN VARCHAR2, plevel IN varchar2, pcompartment in varchar2,pgroup IN VARCHAR2)
+  is
+  BEGIN
+      DBMS_SESSION.SET_CONTEXT(pcontext, DATAHUB_APPLICATION, papplication);
+      DBMS_SESSION.SET_CONTEXT(pcontext, DATAHUB_FONCTION, pfonction);
+      DBMS_SESSION.SET_CONTEXT(pcontext, DATAHUB_USER, puser);
+      DBMS_SESSION.SET_CONTEXT(pcontext, DATAHUB_SECURITY_LEVEL, plevel);
+      DBMS_SESSION.SET_CONTEXT(pcontext, DATAHUB_SECURITY_COMPARTMENT, pcompartment);
+      DBMS_SESSION.SET_CONTEXT(pcontext, DATAHUB_SECURITY_GROUP, pgroup);
+      --SA_SESSION.set_access_profile('DH_POLICY', puser);
+      --SA_SESSION.SET_LABEL('DH_POLICY',nvl(plevel,'')||':'||NVL(pcompartment,'')||':'||nvl(pgroup,''));
+
+
+  END setCurrentContext;
+
+  procedure clearCurrentContext(pcontext in varchar2)
+  is
+  BEGIN
+      --DBMS_SESSION.CLEAR_CONTEXT (pcontext);
+      NULL;
+  END clearCurrentContext;
+
+
+  function getCurrentCompartment(pcontext in varchar2) return varchar2
+  is
+  begin
+    return NVL(SYS_CONTEXT(pcontext, DATAHUB_SECURITY_COMPARTMENT),'undefined');
+  end getCurrentCompartment;
+
+
+  function hasCompartment( pcontext in varchar2,pcompartment in varchar2 ) return integer
+  is
+      begin
+        if (instr(getCurrentCompartment(pcontext),pcompartment)>0) then
+          return 1;
+        end if;
+        return 0;
+      end hasCompartment;
+end p_securityservice;
+
+
+create or replace
+package p_test as
+  konst constant varchar2 (55) := 'Konstante' ;
+  vari varchar2 (55) := 'Ajustable' ;
+  entier pls_integer := 55 ;
+  --
+  procedure la_proc(p_v in varchar2, p_n out number);
+  function  la_func(i in pls_integer) return varchar2 ;
+end p_test;
+
+create or replace
+package body p_test as
+   procedure la_proc(p_v in varchar2, p_n out number) is
+   begin
+     dbms_output.put_line ('Dans p_test.laproc : ' || p_v);
+     p_n := entier ;
+   end la_proc;
+  
+   function  la_func(i in pls_integer) return varchar2 is
+   begin
+  
+     return case when i <= 10 then vari else konst end ;
+   end la_func;
+end p_test;
+
+
+

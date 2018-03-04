@@ -1,0 +1,29 @@
+/*
+**/
+
+create or replace
+PACKAGE p_linkservice IS
+  /** package for ENTITY Manipulation **/
+
+   TYPE t_json IS record
+   (
+      jsonValue clob,
+      jsonHash varchar2(64)
+   );
+    CONST_MAX_DATE constant DATE :=TO_DATE('01/01/3000','DD/MM/YYYY');
+
+
+     function storeLink( pobjectnameorcode in varchar2
+                       , pfromOt in varchar2, pfromUuid in RAW
+                       , ptoOt varchar2
+                       , ptoUuid in RAW
+                       , pupdatePrevious in integer default 1
+                       , peffectivestartdate in DATE default SYSDATE
+                       , peffectiveenddate in date default CONST_MAX_DATE
+                       ) return varchar2;
+    -- procedure storeLink( puuid in out raw, pROLE in VARCHAR2,  pfromOt in varchar2, pfromUuid in RAW, pfromRole in varchar2, ptoOt varchar2, ptoUuid in RAW,  ptoRole in varchar2,  pupdatePrevious in integer default 1, peffectivestartdate in DATE default SYSDATE, peffectiveenddate in date default CONST_MAX_DATE);
+
+
+END p_linkservice;
+/
+show errors

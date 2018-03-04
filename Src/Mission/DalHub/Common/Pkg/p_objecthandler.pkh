@@ -1,0 +1,129 @@
+/*
+**/
+
+ create or replace
+PACKAGE                  p_objecthandler IS
+  /**
+
+  Package  de manipulation des meta données d'une entité et des liens
+
+  10/2017
+
+  **/
+     STATUS_ACTIVE  constant varchar2(1) :='A';
+     STATUS_INVALID  constant varchar2(1) :='I';
+     STATUS_HISTORICAL  constant varchar2(1) :='H';
+     CONST_MAX_DATE constant DATE :=TO_DATE('01/01/3000','DD/MM/YYYY');
+
+
+   -- define type
+     TYPE_ENTITY constant varchar2(10) :='entity';
+     TYPE_LINK constant varchar2(10) :='link';
+     TYPE_EVENT constant varchar2(10) :='event';
+     TYPE_NOMENCLATURE constant varchar2(15) :='nomenclature';
+     TYPE_AGGREGATED constant varchar2(15) :='aggregated';
+
+
+     ATTRIBUTE_NAME_UUID constant varchar2(4) :='uuid';
+     ATTRIBUTE_NAME_LASTMODIFIED constant varchar2(12) :='lastmodified';
+     ATTRIBUTE_NAME_VERSION constant varchar2(7) :='version';
+     ATTRIBUTE_NAME_CREATEDDATE constant varchar2(11) :='createddate';
+     ATTRIBUTE_NAME_EFFECTIVESTARTDATE constant varchar2(20) :='effectivestartdate';
+     ATTRIBUTE_NAME_EFFECTIVEENDDATE constant varchar2(20) :='effectiveenddate';
+     ATTRIBUTE_NAME_LN constant varchar2(2) :='ln';
+     ATTRIBUTE_NAME_STATUSCODE constant varchar2(12) :='statuscode';
+     ATTRIBUTE_NAME_SA_LABEL constant varchar2(12) :='sa_label';
+     ATTRIBUTE_LINK constant varchar2(12) := TYPE_LINK;
+
+
+     -- scope for search : default
+     SCOPE_ALL constant varchar2(3) :='all';
+
+        -- scope for search : root
+     SCOPE_ROOT constant varchar2(4) :='root';
+
+      -- scope for search meta and extra info
+     SCOPE_EXTRADATA constant varchar2(10) :='extradata';
+
+      -- scope for search meta and extra info
+     SCOPE_HISTORY constant varchar2(10) :='history';
+
+     -- scope for search : specific link
+     SCOPE_LINK constant varchar2(6) :='link';
+
+     --default table
+     DEFAULT_EXTRADATA_TABLE  constant varchar2(100) :='own_07755_common.x_object_extradata';
+     DEFAULT_HISTORY_TABLE  constant varchar2(100) :='own_07755_common.h_object_history';
+
+     -- attribute type
+     TYPE t_attribute IS RECORD
+     (  attributeName varchar2(255),
+        attributeType varchar2(255),
+        sqLName   varchar2(255),
+        sqLType   varchar2(255),
+        sqllength integer ,
+        PkNAME varchar2(255)  );
+
+       -- map table object type for refence
+    type t_objecttable_map is table of integer index by varchar2(255);
+
+    type t_selectbaseMap is table of varchar2(32000) index by varchar2(255);
+
+    -- attribute list type
+    type t_attributetable is table of t_attribute;
+
+    -- object type
+    TYPE t_object IS record
+    (  --  name varchar2(255),
+          info m_info_dh_object%ROWTYPE,
+          parameter kvTable_t,
+          attributes t_attributetable,
+          parent  varchar2(255),
+          root varchar2(255) ,
+          sqlBaseSelect t_selectbaseMap,
+          sqlbaseInsert varchar2(32000),
+          sqlbaseUpdate varchar2(32000),
+          sqlbaseUpdatePrevious varchar2(32000),
+          sqlbaseSelectMaxPrevious varchar2(32000),
+          sqlbaseSelectExist varchar2(32000));
+
+    -- object list type
+    type t_objecttable is table of t_object;
+
+    -- all entities list table ( as a static variable)
+    listAllObjectTable t_objecttable default null;
+    mapAllObjectTable t_objecttable_map;
+
+     -- reload all static  definition
+     procedure reloadAll ;
+
+     -- load all static entities definition1
+     procedure loadAllMain;
+
+     -- load all child subentities assocoiated with a main object in a single list
+     --( not a recursive approach due to oracle limitation in type definiton : no circular acccepted)
+     function  loadChild( pobjectSchema in varchar2, pobjectType in varchar2,pobjectName in varchar2,pobjectSqlName in varchar2  ) return t_objecttable;
+
+     -- load all attributes associated with a object (column definition)
+     function  loadAttributes( pobjectSchema in varchar2, pobjectType in varchar2,pobjectName in varchar2,pSqlName in varchar2 ) return t_attributetable;
+
+     -- get a object definition based on its code or is name (PER or person for example)
+     procedure getObject (pobjectType in varchar2, pObjectNameOrCode in varchar2, p_object out nocopy t_object) ;
+     function  getIdxObject (pobjectType in varchar2,pObjectNameOrCode in varchar2)  return integer ;
+
+     -- get a list of all subobject definition associated with an object.
+     procedure getChildObject( pObject in out  nocopy t_object, pobjecttable out nocopy t_objecttable ) ;
+
+
+     -- get one parameter associated with an object ( key / value approach)
+     function  getParameter ( pObject  in out nocopy t_object, pKey in varchar2,pDefaultValue in varchar2 default null) return varchar2 ;
+
+
+       -- get the table (SQL) name associated with an object
+     function  getSqlFullTableName(pObject  in out nocopy t_object) return varchar2;
+     function  getSqlSpecificTable( pobject in out nocopy  t_object, specificKey in varchar2, defaultTable in varchar2 ) return varchar2 ;
+      function getSqlBaseExtraData(pobject in out nocopy  t_object)  return varchar2;
+      function getSqlBaseHistory(pobject in out nocopy  t_object)  return varchar2 ;
+END p_objecthandler;
+/
+show errors

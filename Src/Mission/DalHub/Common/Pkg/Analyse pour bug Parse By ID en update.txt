@@ -1,0 +1,25 @@
+Analyse des parsings pour stockage des entités
+Bug des store en update by ID - uuid not found.
+
+Point de départ :
+a. L'id en cours de storing est bien relié à un UUID présent et correspondant
+b. Le UUID en cours de recherche (exists) ne correspond en rien à l'ID en cours de stockage.
+c. Première intuition : il y a eu génération à tort d'un nouvel ID, l'appel n'en fournissant aucun
+
+Hiérarchie des appels :
+1. 
+function  storeObject(jsonObject in out nocopy clob,pobjectnameorcode in varchar2  default null,psaveHistory in integer default 1) return clob
+
+2. priv_storeObject(jo,lobject ,ltableBind,0,lbSaveHisto) appel en en ligne 1181
+   NB : 875 - Tout est initialisé à null sauf l'uuid qui n'est même pas sité
+
+3. 890 : PArsing du JSON. Ici sont reprises les informations portées pour storing
+
+4. priv_reassign(ljson,lvalue,pobject.attributes(i).sqltype) : on identifie les types des données dans le JOSN, 
+   pour nous ici, on doit reconnaître l'IDS et récupérer sa valeur en vue de la recherche d' i'uuid
+   NB : Le type (ici IDTABLE_T) provient du paramétrage stocké en base common.m_info_.... pour l'entité ou le lien (ici, l'entité)
+   
+5. 820 : appel à pvalue.ids_value :=priv_getIds(pjson); pour récupérer la valeur de l'ids. C'est le pobjectAttributes qui 
+   stoque les valeurs, donc aussi l'Ids récupéré.
+   
+6. Random uuid, sans considération de l'Ids répupéré dans le parsing. C'est le bug. Il ne faudrait un random uuid que dans le cas où aucun autre n'a pu être associé à l'Ids

@@ -1,0 +1,23 @@
+-- Au 20180312
+
+1. p_entityService.storeObject
+2. p_entityService, ligne 1267, appel de p_entityService.priv_storeObject  -> cas d'une seule entité
+                                il y a un autre appel plus bas pour le cas d'entités multiples dans le JSON en 1302
+
+  dbms_lob.append(lretclob,priv_storeObject(jo,               lobject, ltableBind, 0, lbSaveHisto)); -- 1 entité : en 1267
+  dbms_lob.append(lretclob,priv_storeObject(ljsonObjectChild, lobject, ltableBind, 0, lbSaveHisto)); -- +sizurs entités : en 1302
+
+3. p_entityService.priv_storeObject lines 879 to 1173 -- avec deux appels récursifs en 1113 et en 1128
+   retc := priv_storeObject( TREAT(ljson  AS JSON_OBJECT_T), lobjecttable(k) ,ltableBind, plevel+1 ); -- 1113
+   retc := priv_storeObject( ljsonObjectChild              , lobjecttable(k), ltableBind, plevel+1 ); -- 1128
+4. Assigning an effectiveenddate value on line 1008
+   => Is it the place to coputerize the right value ? NOPE : too early. Many terms are still unknowned : effectivestartdate, .... 
+   But on 1065, all the bind values are auired. Why not here ?
+      effectiveenddate := f_setEffectiveEndDate(uuid, ln, nvl(current_effEndDate, DFLT_ENDDATE))
+5. Assigning an effectivestartdate on line 1039
+
+6. Line 1081 : inserting / or updating ?
+   When updating, is it with updating previous versions context getSqlBaseUpdatePrevious or not getSqlbaseUpdate ?
+   NB : Attention : curieuse répartion des insert et update en lignes  1082 à 1090 : Bizarre !
+
+

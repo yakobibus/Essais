@@ -1170,7 +1170,7 @@ dbms_output.put_line ('Coucou 13 : ');
         ret:=ret||chr(13)||'}';
 dbms_output.put_line ('Coucou 14 : ret=['||ret||']');
         return ret;
-      end;  
+      end priv_storeObject;  
        
     
     
@@ -1314,7 +1314,7 @@ dbms_output.put_line ('Coucou 21 : ');
              dbms_output.put_line('ERROR '||SQLCODE||' :'||SQLERRM);
              rollback to savepoint start_store;
              raise;
-      end; 
+      end storeObject; 
  
       
 END p_entityservice;

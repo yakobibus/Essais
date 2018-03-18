@@ -17,6 +17,7 @@ function f1 {
     done
 }
 
+declare -ir tmStart=$( date +%s )
 declare -r ARGC=${#}
 declare -i ii=0
 declare -a anArray
@@ -26,8 +27,19 @@ echo "Il y a $ARGC vars : "
 for titi in "${@}"  ; do 
     anArray[${ii}]="${titi}"
     ii=$(( 1 + $ii ))
-    echo $ii. $titi , " tbl ->(${#anArray[@]}) : ["${anArray[$(( -1 + ${ii} ))]}"]"
+    echo $ii. $titi , " tbl ->(${#anArray[*]}) : ["${anArray[$(( -1 + ${ii} ))]}"]"
 
     f1 ${titi}
 done
 
+ii=0
+sleep 1
+
+while [[ $ii -lt 999000 ]] ; do
+  echo -n -e ".\b"
+  ii=$(( 1 + $ii ))
+done
+echo 
+
+declare tmEnd=$( date +%s )
+echo Durée de ${tmStart} à ${tmEnd} ":" $(( ${tmEnd} - ${tmStart} )) "seconde(s)"
